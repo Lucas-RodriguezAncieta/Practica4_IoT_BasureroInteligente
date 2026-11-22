@@ -21,7 +21,7 @@ class SmartBin {
   unsigned int fillAlertThreshold() const { return fillAlertThreshold_; }
   bool capacityLock() const { return capacityLock_; }
   bool servoReady() const { return lid_.ready(); }
-  bool openingAllowed() const { return !capacityLock_ || (validMeasurement_ && fillPercent()<fillAlertThreshold_); }
+  bool openingAllowed() const {  return !capacityLock_ && (!validMeasurement_ ||  fillPercent() < fillAlertThreshold_);}
   Mode mode() const { return mode_; }
   LidServo::State lidState() const { return lid_.state(); }
   bool proximityDetected() const { return proximity_.detected(); }
