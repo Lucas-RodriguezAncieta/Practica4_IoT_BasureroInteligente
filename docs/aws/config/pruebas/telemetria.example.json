@@ -1,0 +1,11 @@
+
+{
+  "fillPercent": 80,
+  "distanceCm": 7,
+  "mode": "AUTOMATICO",
+  "lidState": "cerrada",
+  "irFrontDetected": false,
+  "irObstacleDetected": false,
+  "autoCloseSeconds": 5,
+  "fillAlertThreshold": 90
+}

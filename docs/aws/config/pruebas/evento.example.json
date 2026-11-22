@@ -1,0 +1,8 @@
+
+{
+  "action": "abrir",
+  "lidState": "abierta",
+  "origin": "voz",
+  "commandId": 123456,
+  "mode": "MANUAL"
+}

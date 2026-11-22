@@ -1,0 +1,31 @@
+
+{
+  "version": "1.0",
+  "session": {
+    "user": {
+      "userId": "usuario-prueba-002"
+    }
+  },
+  "context": {
+    "System": {
+      "application": {
+        "applicationId": "REEMPLAZAR_POR_SKILL_ID"
+      },
+      "user": {
+        "userId": "usuario-prueba-002"
+      }
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "intent": {
+      "name": "VincularBasureroIntent",
+      "slots": {
+        "codigo": {
+          "name": "codigo",
+          "value": "REEMPLAZAR_POR_CODIGO_DE_PRUEBA"
+        }
+      }
+    }
+  }
+}

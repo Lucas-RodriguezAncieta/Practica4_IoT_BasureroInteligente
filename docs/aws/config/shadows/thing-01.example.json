@@ -1,0 +1,15 @@
+
+{
+  "state": {
+    "desired": {
+      "mode": "AUTOMATICO",
+      "autoCloseSeconds": 5,
+      "fillAlertThreshold": 90,
+      "capacityLock": false
+    },
+    "reported": {
+      "mode": "AUTOMATICO",
+      "capacityLock": false
+    }
+  }
+}
