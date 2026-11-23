@@ -35,9 +35,9 @@ IR2 no detecta necesariamente todos los obstáculos; el sistema no debe consider
 | F04 | Distinguir modos automático y manual y aceptar comandos locales o del Shadow. | [SmartBin](../include/SmartBin.h), [main](../src/main.cpp). | Registro AWS informa demostración de ambos modos; T03 y T19 pendientes formalmente. |
 | F05 | Sincronizar configuración, sensores y estado estimado por Shadow; conectar por MQTT/TLS. | [AWSIoTManager](../src/AWSIoTManager.cpp), [ShadowManager](../src/ShadowManager.cpp). | Registro AWS informa conexión y aceptación de reported; T11–T12 pendientes formalmente. |
 | F06 | Vincular usuarios a Things y consultar/controlar por Alexa sin Thing fijo. | Lambda y tabla de usuarios descritas en [configuración AWS](../CONFIGURACION_AWS_ALEXA_BASURERO_INTELIGENTE_P4.md#8-vinculación-usuario--thing-algoritmo-completo). | Una cuenta Alexa y otra identidad simulada; T17–T19 pendientes formalmente. |
-| F07 | Enviar telemetría y eventos a reglas y guardar histórico por Thing. | Tres reglas y Lambda de almacenamiento, §3.7. | Registro AWS describe tres lecturas simuladas almacenadas; T13–T16 pendientes formalmente. |
+| F07 | Enviar telemetría y eventos a reglas y guardar histórico por Thing. | Tres reglas y Lambda de almacenamiento, §3.7. |T13–T15 pendientes de validación formal. T16 APROBADA: integridad del 100 % (100/100) y latencia máxima de 1.135 s (10/10 mensajes dentro de 5 s).|
 | F08 | Aplicar bloqueo por capacidad en nube con histéresis y respetarlo en Edge. | Regla y Lambda de capacidad; [SmartBin](../src/SmartBin.cpp). | Registro AWS describe 95/85/80 % en Thing simulado; T20 pendiente formalmente. |
-| F09 | Consultar y modificar modo y parámetros desde Alexa. | Intents de modo, umbral y retardo, §3.9. | Registro AWS documenta solicitudes y respuestas; faltan capturas actuales de reported. |
+| F09 | Consultar y modificar modo y parámetros desde Alexa. |Intents de modo, umbral y retardo, §3.8.| Registro AWS documenta solicitudes y respuestas; faltan capturas actuales de reported. |
 | F10 | Diseñar reportes para decisiones a partir del histórico. | Mockups en §3.10. | Diseño ilustrativo; consultas y datos reales por verificar. |
 
 Los requisitos funcionales de esta práctica se identifican F01–F10 para evitar confundirlos con los requisitos heredados de la Práctica 3. **Antes de entregar, transcribir literalmente RF01–RF09 de la Práctica 3** y agregar una columna que indique si cada uno se mantiene, modifica o amplía. No se afirma que F01–F10 sustituyan automáticamente todos los requisitos originales de la consigna.
@@ -209,7 +209,7 @@ classDiagram
  AWSIoTManager ..> WiFiManager : conectividad
 ```
 
-Las Lambdas usan diseño funcional y no se representan como clases Python: `basurero_alexa` resuelve usuarios y Shadow; `basurero_almacenamiento` valida y persiste; `basurero_control_capacidad` decide el bloqueo. Sus fuentes desplegadas no están en el repositorio, por lo que no se afirma una estructura interna de clases.
+Las Lambdas usan diseño funcional y no se representan como clases Python: `basurero_alexa` resuelve usuarios y Shadow; `basurero_almacenamiento` valida y persiste; `basurero_control_capacidad` decide el bloqueo. Las funciones Lambda utilizan una estructura funcional en Python y no se representan como clases en el diagrama UML del firmware. Sus códigos fueron exportados desde AWS Lambda y se encuentran documentados en `docs/aws/04-funciones-lambda.md`.
 
 ### 3.3 Secuencias
 
@@ -323,7 +323,9 @@ El estado inicial depende de IR2: el firmware ordena posición abierta si detect
 | Bloqueo/desbloqueo por umbral con histéresis. | Nube | Permite cambiar la regla y emplea telemetría y Shadow; no actúa mientras no lleguen datos. |
 | Solicitud por voz. | Nube y Edge | Alexa modifica `desired`; el ESP32 evalúa sus restricciones locales antes de actuar. Manual deshabilita la apertura por IR1 y el cierre temporizado. |
 
-La Lambda de capacidad documentada bloquea al superar o igualar el umbral y libera al bajar al umbral menos 10 puntos; en la banda intermedia conserva el estado. Con umbral 90 %, los puntos son 90 % y 80 %. La fuente desplegada no está exportada para verificar aquí su implementación exacta.
+La función `basurero_control_capacidad` aplica histéresis al bloqueo por llenado: bloquea cuando el porcentaje alcanza o supera el umbral configurado y desbloquea cuando disminuye hasta el umbral menos 10 puntos porcentuales. Dentro de la banda intermedia conserva el estado anterior. Con un umbral del 90 %, los puntos de bloqueo y liberación son 90 % y 80 %, respectivamente.
+
+El código de esta función fue exportado desde AWS Lambda y se encuentra documentado en `docs/aws/04-funciones-lambda.md`, junto con las demás funciones utilizadas en el proyecto.
 
 ### 3.5 Shadow y protocolo
 
@@ -383,7 +385,7 @@ El filtro de la última regla solo comprueba presencia; la validación del valor
 | Lambda | Disparador | Responsabilidad y recursos |
 |---|---|---|
 | `basurero_alexa` | Alexa Skills Kit | Resolver vínculo en `basurero_usuarios`, consultar o modificar Shadow y responder. |
-| `basurero_almacenamiento` | Reglas de telemetría y eventos | Validar/enriquecer mensajes y escribir en `basurero_historial`. Reglas exactas de validación pendientes de exportación. |
+| `basurero_almacenamiento` | Reglas de telemetría y eventos | Validar y enriquecer los mensajes recibidos y almacenarlos en `basurero_historial`. El código de la función fue exportado y documentado en `docs/aws/04-funciones-lambda.md`. |
 | `basurero_control_capacidad` | Regla de capacidad | Leer Shadow y modificar `desired.capacityLock` cuando corresponda. |
 
 ### 3.8 Diseño de interacción Alexa
@@ -401,8 +403,9 @@ Skill **Basurero Inteligente**, invocación «basurero inteligente», idioma `es
 | `ConsultarNivelIntent`, `ConsultarTapaIntent`, `ConsultarModoIntent` | — | Consultar nivel, tapa o modo reportados. |
 | `ConsultarUmbralIntent`, `ConsultarRetardoIntent`, `ConsultarSensoresIntent`, `ConsultarBloqueoIntent` | — | Consultar parámetros, sensores o bloqueo. |
 
-Las frases describen el diseño; el JSON actual del modelo de interacción no está exportado para verificar cada expresión exacta. El registro documenta una corrección de reconocimiento de `ConsultarBloqueoIntent` y una respuesta posterior correcta.
+Las frases de la tabla son ejemplos ilustrativos del diseño de interacción. El modelo JSON de la Skill fue exportado desde Alexa Developer Console e incorporado a la documentación del proyecto, junto con la descripción de los intents y slots en `docs/aws/06-alexa-skill.md`.
 
+Durante las pruebas se realizó una corrección del reconocimiento de `ConsultarBloqueoIntent`, obteniendo posteriormente una respuesta correcta. Esta observación corresponde a una prueba funcional y no sustituye la validación individual de todos los intents.
 ### 3.9 Seguridad y permisos
 
 El cliente utiliza MQTT sobre TLS con certificado X.509, clave privada y CA de confianza. La plantilla [CloudSecrets.example.h](../include/CloudSecrets.example.h) no contiene secretos; `CloudSecrets.h` está excluido mediante [.gitignore](../.gitignore). Las claves privadas y credenciales WiFi no deben incluirse en el repositorio ni en capturas.
@@ -417,7 +420,12 @@ La [política IoT de ejemplo](../aws-iot-policy.example.json) limita `iot:Connec
 | Lambda capacidad | Lectura y actualización del Shadow de los Things autorizados y logs. |
 | IoT Rules y Alexa | Permiso de invocación de las Lambdas correspondientes. |
 
-El detalle completo de las políticas **efectivamente desplegadas** no está exportado; los permisos anteriores son los mínimos del diseño y deben contrastarse con IAM. Los códigos de vinculación estáticos del prototipo deben sustituirse por credenciales temporales para una aplicación real.
+
+Se verificaron las políticas IAM personalizadas de las tres funciones Lambda mediante AWS IAM. Se comprobó que `basurero_almacenamiento` cuenta con permisos de escritura sobre `basurero_historial`, que `basurero_control_capacidad` puede consultar y actualizar los Shadows de los dos Things autorizados y que `basurero_alexa` dispone de los permisos necesarios para gestionar las vinculaciones y consultar o controlar los Things.
+
+Las políticas verificadas se documentan en `docs/aws/08-permisos-iam.md`, junto con archivos JSON de ejemplo.
+
+Los códigos de vinculación estáticos del prototipo deben sustituirse por credenciales temporales para una aplicación real.
 
 ### 3.10 Mockups de reportes
 
@@ -538,7 +546,9 @@ Estos valores son ejemplos para explicar el formato, no una captura del Shadow r
 | `basurero_control_capacidad` | Thing y `fillPercent` | Leer Shadow; evaluar threshold e histéresis; escribir `desired.capacityLock` solo si cambia | Solicitud de bloqueo/desbloqueo sincronizable con Edge | Lectura inválida, Thing no autorizado, Shadow inaccesible; evitar cambios repetidos |
 | `basurero_alexa` | Intent, slots y userId Alexa | Resolver binding; leer Shadow o validar y actualizar desired; acceder a tabla de usuarios/contador y Shadow | Respuesta de voz que distingue solicitud enviada de estado reportado | Usuario sin vínculo, slot inválido, Thing inexistente, Shadow obsoleto, fallo de AWS |
 
-La tabla describe responsabilidades esperadas y el registro de configuración; no reemplaza el código desplegado. Exportar código o versiones sanitizadas de Lambda y revisar las entradas/salidas reales para cerrar trazabilidad.
+La matriz describe las responsabilidades y la interacción entre las reglas IoT, las funciones Lambda y los recursos AWS. El código de las tres funciones Lambda fue exportado desde la configuración desplegada y se incorporó a la documentación en `docs/aws/04-funciones-lambda.md`.
+
+La matriz constituye una referencia de arquitectura y debe interpretarse junto con el código documentado y las evidencias de ejecución. Las pruebas realizadas permiten verificar determinados comportamientos de almacenamiento, capacidad e integración, sin garantizar la cobertura de todas las condiciones de error.
 
 ### 3.14 DynamoDB: claves, tipos y patrones de acceso
 
@@ -584,11 +594,20 @@ El punto de entrada [main.cpp](../src/main.cpp) ejecuta el control local y crea 
 
 La telemetría y el reported se programan cada 30 s; esta frecuencia reduce tráfico frente a publicar cada lectura y es adecuada como punto de partida para un llenado que cambia lentamente. La seguridad del cierre no espera a ese intervalo. MQTT usa QoS 0 y la cola de eventos en RAM es limitada; durante desconexiones prolongadas pueden perderse eventos. Tras reconectar se vuelve a consultar el Shadow. Los parámetros cloud están en RAM y tras un reinicio sin red se usan valores iniciales locales.
 
-La configuración documentada incluye Thing físico, certificado, política IoT, tres reglas, tres Lambdas, dos tablas y skill descritos en el [registro AWS/Alexa](../CONFIGURACION_AWS_ALEXA_BASURERO_INTELIGENTE_P4.md). Esa fuente indica runtime Python 3.12 y región `us-east-2`. Deben exportarse las versiones finales de Lambdas, modelo de interacción y políticas para que el repositorio sea reproducible.
+La configuración documentada incluye Thing físico, certificado, política IoT, tres reglas, tres Lambdas, dos tablas y skill descritos en el [documentación AWS/Alexa](aws/README.md). Esa fuente indica runtime Python 3.12 y región `us-east-2`.
+El código de las tres funciones Lambda y el modelo de interacción de Alexa se incorporaron al repositorio en `docs/aws/`. Las políticas IAM personalizadas de las tres Lambdas fueron contrastadas con su configuración real y están documentadas mediante archivos JSON de ejemplo.
+
+La documentación técnica y las evidencias se encuentran en [docs/aws/](docs/aws/README.md).
 
 ## 5. Pruebas y validaciones
 
-El [plan T01–T20](../test/Pruebas.md) describe procedimientos y criterios para sensores, tapa, modos, IR2, calibración, desconexión, MQTT, Shadow, reglas, DynamoDB, voz y separación de usuarios. Todos sus estados están marcados **PENDIENTE**; no se registran allí fechas, series de ensayos ni evidencias. Por ello, las observaciones siguientes se atribuyen al registro narrativo AWS y no se presentan como ensayos formales cerrados.
+El [plan T01–T20](../test/Pruebas.md) establece los procedimientos y criterios de validación del sistema.
+
+La mayoría de las pruebas todavía requiere registros formales de ejecución. Sin embargo, la prueba T16 cuenta con resultados cuantitativos de integridad y latencia: 100 de 100 mensajes almacenados y una latencia máxima observada de 1.135 segundos en una muestra adicional de 10 mensajes.
+
+Las observaciones funcionales restantes se presentan como evidencias parciales y no se consideran pruebas completamente aprobadas sin mediciones y registros suficientes.
+
+
 
 | ID relacionado | Procedimiento descrito | Observación registrada | Alcance y evidencia |
 |---|---|---|---|
@@ -600,7 +619,7 @@ El [plan T01–T20](../test/Pruebas.md) describe procedimientos y criterios para
 
 ### 5.1 Protocolo para métricas pendientes
 
-1. **Integridad y latencia:** identificar N publicaciones válidas y contar registros únicos en DynamoDB; integridad = registros correspondientes/N × 100. Registrar duplicados, mensajes inválidos y pérdida. Registrar inicio y persistencia con relojes sincronizados para cada mensaje; comparar el máximo con 5 s. Con solo 20 mensajes, una pérdida implica 95 %: la resolución es insuficiente para caracterizar con precisión 99 %.
+1. **Integridad y latencia:** se verificó el almacenamiento de 100 mensajes MQTT aceptados por AWS IoT Core, obteniendo una integridad del 100 %. En una segunda ejecución de 10 mensajes se obtuvo una latencia promedio de 0.326 s y máxima de 1.135 s. Ambas mediciones cumplieron sus criterios de aceptación en condiciones controladas con el Thing 02 simulado.
 2. **Tiempo Edge y Cloud:** registrar por separado detección o solicitud y primer movimiento físico observable, con reloj común o video de resolución declarada; repetir e informar máximo, valores individuales y condiciones.
 3. **Calibración:** medir distancias de referencia y diez lecturas en cada nivel; registrar porcentaje de referencia, valor calculado y diferencia en puntos porcentuales.
 4. **Offline y reconexión:** interrumpir la red, comprobar IR1, cierre e IR2; registrar duración de interrupción, eventos producidos, descartados y tiempo de recuperación, y comprobar aplicación del desired pendiente.
@@ -608,7 +627,7 @@ El [plan T01–T20](../test/Pruebas.md) describe procedimientos y criterios para
 
 ### 5.2 Matriz de pruebas resumida (20 pruebas)
 
-| ID | Prueba / procedimiento | Criterio de aceptación | Estado inicial |
+| ID | Prueba / procedimiento | Criterio de aceptación | Estado actual |
 |---|---|---|---|
 | T01 | IR1: acercar/retirar mano, 10 repeticiones | Detecta/libera en las 10 repeticiones; registrar falsos disparos | Pendiente de registro formal |
 | T02 | Apertura AUTO por IR1, repetir 10 veces | Abre solo si automático está activo y no hay bloqueo; detección sostenida no retriggera | Pendiente |
@@ -625,7 +644,7 @@ El [plan T01–T20](../test/Pruebas.md) describe procedimientos y criterios para
 | T13 | Publicar telemetría/evento para activar Rule | Se invoca Lambda prevista y se registra log correlacionable | Pendiente formal |
 | T14 | Enviar 10 lecturas y 5 eventos válidos | Items aparecen en historial con Thing, timestamp y tipo correctos | Pendiente formal; registro narrativo parcial |
 | T15 | Enviar 5 payloads malformados o fuera de rango | Rechazados/registrados como inválidos; no contaminan datos válidos ni generan comando | Pendiente |
-| T16 | Enviar 20 mensajes con IDs únicos | Calcular integridad; objetivo ≥99% y latencia almacenamiento ≤5 s; informar número de muestra | Pendiente |
+| T16 | Verificar integridad y latencia del almacenamiento en DynamoDB mediante telemetrías MQTT simuladas | Integridad ≥99 %; latencia ≤5 s | APROBADA: integridad 100 % (100/100); latencia máxima 1.135 s (10/10 dentro de 5 s) |
 | T17 | Verificar 2 bindings y usuario sin binding | Cada identidad accede solo al Thing vinculado; usuario no vinculado denegado | Pendiente formal; prueba simulada descrita |
 | T18 | Consultar nivel, tapa, modo y lectura ausente/desactualizada con Alexa | Respuesta usa datos reportados y distingue dato faltante o antiguo | Pendiente formal |
 | T19 | Comandos de voz: abrir, cerrar, modo, retardo y umbral; obstáculo y usuario no vinculado | Comando autorizado; Edge respeta IR2/capacidad; respuesta no afirma posición física confirmada | Pendiente formal; registro narrativo |
@@ -635,11 +654,112 @@ El [plan T01–T20](../test/Pruebas.md) describe procedimientos y criterios para
 
 Completar una fila por ejecución y conservar datos originales:
 
+
 | ID | Fecha/hora (UTC−4) | Responsable | Commit/versión | Condición y muestra | Resultado medido | Estado | Evidencia/archivo | Fallo y re-prueba |
 |---|---|---|---|---|---|---|---|---|
-| Txx | [Completar] | [Completar] | [Completar] | [Completar] | [Completar] | PENDIENTE | [Ruta] | [Completar] |
+| T16 | 23/11/2026 (hora no registrada) | Josue Camacho — AWS | `2438a29` (código documentado) | 100 mensajes MQTT, QoS 1, Thing 02 simulado | 100/100 almacenados; integridad 100 %; 0 faltantes y 0 duplicados | APROBADA (integridad) | `docs/aws/evidencias/mediciones/resultado_integridad_100.json` | Sin fallos observados |
+| T16 | 23/11/2026 (hora no registrada) | Josue Camacho — AWS | `2438a29` (código documentado) | 10 mensajes MQTT, QoS 1, Thing 02 simulado | 10/10 encontrados; promedio 0.326 s; máximo 1.135 s | APROBADA (latencia) | `docs/aws/evidencias/mediciones/resultado_latencia_10.json` | Sin fallos observados |
+| Complementaria: eventos por origen | 23/11/2026, 01:02 (UTC−4) | Josue Camacho — AWS | `2438a29` (código documentado) | Consulta de eventos en `basurero_historial` | 118 eventos: 92 edge, 21 voz, 5 nube; 0 sin origen | VERIFICADA | `docs/aws/evidencias/mediciones/resultado_eventos_origen.json` | Sin fallos observados |
+
 
 Una prueba se marca **APROBADA** solo si se ejecutó, el resultado cumple su criterio y existe evidencia. Si no se ejecutó, debe permanecer **PENDIENTE**; si falla, se documenta causa, corrección y re-prueba sin borrar el fallo original.
+
+
+#### Ejecución T16 — Integridad de almacenamiento
+
+
+**Fecha:** 23/11/2026
+
+**Responsable:** Josue Camacho — Integración AWS
+
+**Dispositivo:** `basurero-grupo3-02` (simulado)
+
+**Procedimiento:** Se publicaron 100 mensajes MQTT de
+telemetría desde AWS CloudShell mediante Boto3, utilizando
+valores de `distanceCm` entre 20.01 y 21.00 para
+identificar individualmente cada publicación.
+
+Los mensajes se enviaron al tópico
+`basurero/basurero-grupo3-02/telemetria` con QoS 1.
+
+**Resultados:**
+
+| Indicador | Valor |
+|---|---:|
+| Mensajes intentados | 100 |
+| Publicaciones aceptadas | 100 |
+| Registros encontrados en DynamoDB | 100 |
+| Mensajes faltantes | 0 |
+| Duplicados detectados | 0 |
+| Integridad observada | **100 %** |
+
+**Estado:** APROBADA para integridad.
+
+**Evidencia:** salida de AWS CloudShell y consulta
+a la tabla `basurero_historial`.
+
+
+La prueba corresponde al almacenamiento de telemetrías simuladas. La latencia fue evaluada mediante una ejecución complementaria de 10 mensajes, cuyos resultados se documentan a continuación.
+
+
+
+#### Ejecución T16 — Latencia de almacenamiento
+
+
+**Fecha:** 23/11/2026
+
+**Responsable:** Josue Camacho — Integración AWS
+
+**Dispositivo:** `basurero-grupo3-02` (simulado)
+
+
+**Procedimiento:** Se publicaron 10 mensajes MQTT con QoS 1 desde AWS CloudShell. Para cada mensaje se midió el tiempo transcurrido desde el inicio de la publicación hasta encontrar su registro mediante consultas de lectura consistente a DynamoDB.
+
+| Indicador | Resultado |
+|---|---:|
+| Mensajes publicados | 10 |
+| Mensajes encontrados | 10 |
+| Latencia promedio | 0.326 s |
+| Latencia mínima | 0.231 s |
+| Latencia máxima | 1.135 s |
+| Latencia mediana | 0.236 s |
+| Mensajes encontrados en ≤5 s | 10/10 |
+
+**Estado:** APROBADA.
+
+El resultado cumple el objetivo de latencia máxima de 5 segundos para los mensajes evaluados.
+
+**Limitación:** la medición incluye publicación MQTT y consultas repetidas hasta encontrar el registro. No representa exclusivamente la duración de escritura interna de DynamoDB.
+
+**Evidencia:** `resultado_latencia_10.json`, generado en AWS CloudShell.
+
+
+#### Verificación de eventos por origen
+
+
+**Fecha:** 23/11/2026
+
+**Responsable:** Josue Camacho — Integración AWS
+
+**Dispositivo:** `basurero-grupo3-02` (simulado)
+
+
+Se realizó una consulta a DynamoDB mediante AWS CloudShell para identificar los eventos almacenados según el atributo `origin`.
+
+| Origen | Cantidad | Ejemplos |
+|---|---:|---|
+| `edge` | 92 | `tapa_abierta`, `apertura` |
+| `voz` | 21 | `orden`, `apertura` |
+| `nube` | 5 | `cambio_modo` |
+| Sin origen | 0 | — |
+| **Total** | **118** | |
+
+Se verificó la existencia de registros correspondientes a los tres orígenes previstos por el sistema.
+
+Los resultados respaldan la trazabilidad de eventos de actuadores y órdenes del proyecto.
+
+**Limitación:** el conteo corresponde a los eventos presentes en la tabla al momento de la consulta. No constituye una medición de integridad de todos los eventos generados.
+
 
 ### 5.4 Evidencia mínima por subsistema
 
@@ -654,34 +774,133 @@ Una prueba se marca **APROBADA** solo si se ejecutó, el resultado cumple su cri
 | Offline/recovery | Video/log antes, durante y después de corte; tiempo de reconexión; pérdidas |
 | Seguridad | Política IoT, roles IAM y `.gitignore` revisados, sin claves, certificados privados ni datos personales |
 
+
 ## 6. Resultados y análisis
 
 | Resultado documentado | Valor o alcance | Límite |
 |---|---|---|
-| Capacidad en Thing 02 simulado | 95 % → bloqueo solicitado; 85 % → conserva; 80 % → desbloqueo solicitado. | Es un ensayo cloud, no mide respuesta física ni latencia. |
-| Historial | Se visualizaron las tres telemetrías simuladas y elementos previos del Thing 01. | Sin conteo completo de enviados/recibidos ni medición de latencia. |
-| Multi-Thing | Consulta simulada de Thing 02: 35 %; cambio de modo aislado respecto a Thing 01. | Una identidad es simulada y solo existe un equipo físico documentado. |
-| Control físico y voz | El registro describe apertura/cierre del servo y comportamiento de modos. | La posición reportada es estimada; faltan evidencias individuales y tiempos controlados. |
+| Capacidad en Thing 02 simulado | 95 % → bloqueo solicitado; 85 % → conserva; 80 % → desbloqueo solicitado. | Ensayo en la nube; no mide la respuesta física ni la latencia. |
+| Integridad de DynamoDB | 100 publicaciones MQTT aceptadas y 100 registros identificados; integridad observada del **100 %**, sin faltantes ni duplicados. | Prueba controlada con Thing 02 simulado y QoS 1. |
+| Latencia de almacenamiento | 10/10 mensajes encontrados en DynamoDB. Promedio: **0.326 s**; máximo: **1.135 s**. | Incluye publicación MQTT y consultas de verificación; no mide exclusivamente la escritura interna. |
+| Eventos por origen | **118 eventos:** 92 `edge`, 21 `voz` y 5 `nube`. Ninguno sin origen. | Conteo de registros existentes; no demuestra integridad total de eventos generados. |
+| Multi-Thing | Consulta simulada de Thing 02: 35 %; cambio de modo independiente respecto a Thing 01. | Una identidad es simulada y solo existe un equipo físico documentado. |
+| Control físico y voz | Se observaron aperturas y cierres del servomotor, además de cambios entre modos manual y automático. | La posición reportada es estimada; faltan mediciones físicas individuales y tiempos controlados. |
 
-La separación Edge/nube mantiene la protección inmediata cerca del actuador y deja la regla de capacidad configurable en AWS. La desconexión limita la actualización de esa regla y la persistencia remota. El uso de QoS 0 y cola finita impide afirmar entrega completa de eventos. Los cambios rápidos de IR2 anotados en el registro justifican comprobar su estabilidad física y su zona de detección.
+### Análisis de los resultados
+
+La prueba de integridad confirmó el almacenamiento de **100 de 100 mensajes MQTT**, alcanzando un resultado observado del **100 %**, superior al requisito mínimo del 99 %.
+
+La prueba de latencia permitió encontrar los 10 mensajes publicados, con un promedio de **0.326 segundos** y un máximo de **1.135 segundos**, cumpliendo el límite de 5 segundos en las condiciones evaluadas.
+
+Asimismo, se verificó la trazabilidad de eventos en DynamoDB mediante 118 registros clasificados según su origen: `edge`, `voz` y `nube`.
+
+La separación Edge/nube mantiene la protección inmediata cerca del actuador y permite configurar la lógica de capacidad desde AWS.
+
+La comunicación habitual del firmware utiliza QoS 0 y una cola finita, por lo que no garantiza la entrega completa durante desconexiones. En cambio, las pruebas automatizadas de integridad y latencia utilizaron QoS 1 y obtuvieron resultados satisfactorios en condiciones controladas.
+
+
+
+### Integridad del almacenamiento
+
+La prueba automatizada de 100 mensajes MQTT con QoS 1 confirmó una integridad observada del 100 % en la tabla DynamoDB basurero_historial.
+
+El cálculo realizado fue:
+
+
+$$
+\text{Integridad} = \frac{100}{100} \times 100 = 100\%
+$$
+
+
+El resultado supera el requisito mínimo del 99 %
+para esta ejecución.
+
+No se identificaron mensajes faltantes ni registros
+duplicados. Sin embargo, este resultado corresponde
+a una muestra controlada de 100 telemetrías simuladas,
+por lo que no garantiza el mismo comportamiento bajo
+todas las condiciones de operación.
+
+
+### Latencia del almacenamiento
+
+Se realizó una prueba automatizada con 10 mensajes MQTT publicados en el Thing simulado `basurero-grupo3-02`.
+
+Los 10 mensajes fueron encontrados en DynamoDB, con una latencia promedio de **0.326 segundos** y una latencia máxima de **1.135 segundos**.
+
+El resultado cumple el criterio de tiempo máximo de 5 segundos para las condiciones evaluadas.
+
+La medición corresponde al tiempo observable desde la publicación hasta la lectura del registro, incluyendo el sondeo de DynamoDB.
+
+
 
 ### 6.1 Estimación preliminar de tráfico y costo
 
-Con operación continua durante 30 días y una publicación de telemetría cada 30 s:
+Se estimó el costo mensual de la infraestructura AWS para un basurero físico funcionando continuamente durante 30 días, en la región `us-east-2` (Ohio).
 
-- Telemetría: `30 × 24 × 60 × 60 / 30 = 86 400` publicaciones por dispositivo y mes.
-- Reported: otras **86 400 solicitudes periódicas** como aproximación, más actualizaciones por reconexión y comandos.
-- Cada telemetría puede activar una invocación de almacenamiento y una de capacidad: hasta **86 400 de cada tipo**, sujeto al filtro y a la operación efectiva. Cada evento adicional puede activar almacenamiento.
-- Si cada telemetría válida genera un `PutItem`, se estiman **86 400 escrituras lógicas** de telemetría, más eventos; lecturas y escrituras adicionales dependen de consultas, Alexa y lógica.
+#### Frecuencia de telemetría
 
-Estas cifras son aproximaciones de diseño, no facturación: tamaños de mensaje, respuestas del Shadow, redondeos de facturación, reintentos, persistencia real, solicitudes de Alexa, capacidad de DynamoDB, región y políticas comerciales alteran el costo. **Falta consultar precios y límites vigentes de la cuenta y región y completar el importe mensual**; no se afirma que esté dentro de una capa gratuita.
+Se analizaron 110 registros reales de `basurero-grupo3-01` almacenados en DynamoDB.
+
+| Indicador | Resultado |
+|---|---:|
+| Intervalo mediano observado | 30.01 segundos |
+| Telemetrías estimadas por mes | 86,363 |
+| Tiempo de operación supuesto | 24 horas al día |
+| Período considerado | 30 días |
+
+Las telemetrías activan las reglas de almacenamiento y capacidad. Los eventos adicionales y las solicitudes de Alexa generan operaciones independientes.
+
+#### Configuración de DynamoDB
+
+Se verificó mediante AWS CLI que ambas tablas utilizan facturación bajo demanda (`PAY_PER_REQUEST`).
+
+| Tabla | Modo | Elementos reportados |
+|---|---|---:|
+| `basurero_historial` | `PAY_PER_REQUEST` | 282 |
+| `basurero_usuarios` | `PAY_PER_REQUEST` | 4 |
+
+Las estadísticas de elementos son aproximadas y corresponden al momento de consulta.
+
+#### Proyección mensual de costos
+
+Se utilizaron tarifas públicas de referencia y supuestos de consumo para estimar el costo sin aplicar créditos ni beneficios gratuitos.
+
+| Servicio | Costo estimado (USD/mes) |
+|---|---:|
+| IoT Core — conexión MQTT | 0.003 |
+| IoT Core — mensajería | 0.086 |
+| IoT Rules — reglas y acciones | 0.052 |
+| Device Shadow — operaciones | 0.216 |
+| AWS Lambda — invocaciones y ejecución | 0.071 |
+| DynamoDB — escrituras | 0.054 |
+| DynamoDB — almacenamiento | 0.020 |
+| CloudWatch Logs | 0.050 |
+| **Total estimado** | **≈ 0.55 USD/mes** |
+
+Para el cálculo se asumieron mensajes pequeños, dos reglas por telemetría, dos invocaciones Lambda por telemetría, dos operaciones Shadow por telemetría, funciones Lambda de 128 MB durante 100 ms, registros de DynamoDB de hasta 1 KB, 0.08 GB de almacenamiento y 0.1 GB de logs mensuales.
+
+Estos valores son supuestos de proyección y no mediciones completas del consumo facturable.
+
+#### Análisis
+
+El costo mensual estimado para un basurero es aproximadamente **0.55 USD**, sin considerar créditos ni beneficios gratuitos.
+
+El resultado sugiere que la arquitectura AWS puede operar con costos reducidos en un escenario académico de un solo dispositivo.
+
+Sin embargo, la estimación no constituye una factura real. Los costos pueden variar según la frecuencia de eventos, uso de Alexa, operaciones Shadow, tamaño de registros, memoria y duración de Lambda, retención de logs y tarifas vigentes.
+
+El segundo Thing se utilizó principalmente para simulación, por lo que no se proyectó como otro dispositivo físico funcionando permanentemente.
+
 
 ## 7. Conclusiones
 
 1. El firmware separa sensores, actuador y red; la protección IR2 se ejecuta en el Edge y no depende de una orden de la nube.
 2. El registro de configuración describe una demostración de integración con Alexa y un ensayo de histéresis 95/85/80 % en un Thing simulado. Estas observaciones respaldan los flujos descritos, pero no cuantifican confiabilidad, latencia ni desempeño físico del segundo Thing.
 3. El Shadow permite separar solicitud y estado reportado. En este prototipo el estado de la tapa sigue siendo una estimación, y la confirmación de una orden no demuestra que el mecanismo haya alcanzado una posición.
-4. La evidencia disponible no permite concluir que se alcanzan las metas de integridad, latencia, exactitud, operación offline o costo; esas verificaciones requieren registros adicionales.
+4. La integración con AWS permitió almacenar y consultar correctamente la telemetría y los eventos del basurero. En la prueba T16 se obtuvo una integridad del **100 % (100/100 mensajes)** y una latencia promedio de **0.326 segundos**, con un máximo de **1.135 segundos**, cumpliendo los criterios de integridad ≥99 % y latencia ≤5 s en las condiciones evaluadas. Además, se verificaron **118 eventos** clasificados por origen: 92 `edge`, 21 `voz` y 5 `nube`. Estos resultados respaldan el funcionamiento de la infraestructura en la nube, aunque permanecen pendientes otras validaciones físicas y de operación sin conexión.
+
+
 
 ## 8. Recomendaciones
 
