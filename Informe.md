@@ -8,7 +8,7 @@
 **Fecha:** 24-11-26  
 **Repositorio:** [Practica4_IoT_BasureroInteligente](https://github.com/Lucas-RodriguezAncieta/Practica4_IoT_BasureroInteligente)
 
-> **Estado:** documento de diseño y validación. Los resultados y métricas deben completarse con pruebas reales y sus evidencias.
+> **Estado:** documento de diseño y validación. El repositorio incluye código y capturas de AWS en [docs/aws](docs/aws/README.md); queda por confirmar que los archivos correspondan exactamente a las versiones desplegadas y completar las pruebas cuantitativas con sus evidencias.
 
 ## 1. Caso de uso y requerimientos
 
@@ -267,7 +267,7 @@ El firmware documenta una cola RAM de 16 eventos y QoS 0; por ello la entrega de
 | Atributo | Tipo | Clave/uso |
 |---|---|---|
 | `thingName` | String | Partition Key. |
-| `timestampId` | String | Sort Key; el formato exacto debe cotejarse con la Lambda desplegada. |
+| `timestampId` | String | Sort Key: la Lambda incluida construye una fecha UTC ISO 8601 con milisegundos, tipo de registro y huella. Confirmar que corresponde a la versión desplegada. |
 | `recordType` | String | TELEMETRIA o EVENTO según las reglas documentadas. |
 | `fillPercent`, `distanceCm` | Number | Medición, si válida. |
 | `lidState`, `mode` | String | Estado estimado y modo cuando estén disponibles. |
@@ -275,44 +275,46 @@ El firmware documenta una cola RAM de 16 eventos y QoS 0; por ello la entrega de
 | `commandId` | String opcional | Identificador de orden enviado en algunos eventos. |
 | `receivedAt` | Number | Timestamp en milisegundos agregado por la regla; confirmar su conservación en DynamoDB. |
 
-**Consultas previstas:** histórico por Thing y rango de tiempo, eventos y conteos por origen. La consulta temporal depende de confirmar que el formato real de `timestampId` preserve el orden cronológico. No se han confirmado GSI ni TTL. El último estado disponible se consulta en el Shadow; no se ha demostrado que se registren alertas de capacidad como eventos.
+**Consultas previstas:** histórico por Thing y rango de tiempo, eventos y conteos por origen. En el código incluido la SK comienza con la fecha UTC, lo que permite diseñar rangos cronológicos usando los límites adecuados. La [documentación de DynamoDB](docs/aws/05-dynamodb.md) indica que no se configuró un índice secundario en las pruebas descritas y deja TTL como mejora. El último estado disponible se consulta en el Shadow; no se ha demostrado que se registren alertas de capacidad como eventos.
 
 ### 2.11. IoT Rules y Lambda
 
-SQL documentado en el registro de configuración; contrastar con la configuración desplegada al exportarla:
+SQL incluido en el repositorio y documentado en el registro de configuración; contrastar con las reglas desplegadas:
 
 ```sql
 SELECT *, topic(2) AS thingName, 'TELEMETRIA' AS recordType,
        timestamp() AS receivedAt
 FROM 'basurero/+/telemetria'
 ```
-**Regla:** `basurero_regla_telemetria`. **Acción:** invocar `basurero_almacenamiento`.
+**Regla:** `basurero_regla_telemetria`. **Acción:** invocar `basurero_almacenamiento`. [Archivo SQL](docs/aws/config/reglas/telemetria.sql).
 
 ```sql
 SELECT *, topic(2) AS thingName, 'EVENTO' AS recordType,
        timestamp() AS receivedAt
 FROM 'basurero/+/eventos'
 ```
-**Regla:** `basurero_regla_eventos`. **Acción:** invocar `basurero_almacenamiento`.
+**Regla:** `basurero_regla_eventos`. **Acción:** invocar `basurero_almacenamiento`. [Archivo SQL](docs/aws/config/reglas/eventos.sql).
 
 ```sql
 SELECT topic(2) AS thingName, fillPercent
 FROM 'basurero/+/telemetria'
 WHERE NOT isUndefined(fillPercent)
 ```
-**Regla:** `basurero_regla_capacidad`. **Acción:** invocar `basurero_control_capacidad`. El filtro comprueba la presencia del campo; la validación de tipo y rango corresponde a la función.
+**Regla:** `basurero_regla_capacidad`. **Acción:** invocar `basurero_control_capacidad`. El filtro comprueba la presencia del campo; la validación de tipo y rango corresponde a la función. [Archivo SQL](docs/aws/config/reglas/capacidad.sql).
 
 | Lambda | Función | Disparador / recursos |
 |---|---|---|
-| `basurero_almacenamiento` | Validar y guardar telemetría y eventos. | Reglas IoT; DynamoDB `basurero_historial`. El código desplegado y la validación exacta deben exportarse. |
-| `basurero_control_capacidad` | Evaluar llenado; con umbral 90 %, solicitar bloqueo ≥90 % y liberación ≤80 %. | Regla de capacidad; Shadow. La histéresis fue descrita para el Thing simulado. |
-| `basurero_alexa` | Resolver usuario a Thing, consultar Shadow y escribir comandos y parámetros en `desired`. | Alexa Skill; tabla `basurero_usuarios`; Shadow. |
+| `basurero_almacenamiento` | Validar y guardar telemetría y eventos. | Reglas IoT; DynamoDB `basurero_historial`. [Código incluido](docs/aws/lambdas/basurero_almacenamiento.py); confirmar correspondencia con el despliegue. |
+| `basurero_control_capacidad` | Evaluar llenado; con umbral 90 %, solicitar bloqueo ≥90 % y liberación ≤80 %. | Regla de capacidad; Shadow. [Código incluido](docs/aws/lambdas/basurero_control_capacidad.py). |
+| `basurero_alexa` | Resolver usuario a Thing, consultar Shadow y escribir comandos y parámetros en `desired`. | Alexa Skill; tabla `basurero_usuarios`; Shadow. [Código incluido](docs/aws/lambdas/basurero_alexa.py). |
 
 Lambda no controla GPIO. El ESP32 aplica cambios recibidos. Permisos IAM deben limitarse a recursos necesarios (por ejemplo, `PutItem` para writer y `UpdateThingShadow` para controlador), documentando permisos más amplios si fueran necesarios durante la práctica.
 
+La versión de almacenamiento incluida valida `thingName`, `recordType` y `receivedAt`; para telemetría exige porcentaje 0–100, distancia 2–400 cm y estados permitidos. Para eventos valida `event`, `origin`, `detail` y, si existe, `commandId`. Calcula una huella y usa una escritura condicional sobre la clave generada; no debe asumirse que esto elimina toda duplicación posible si el contenido o la marca de recepción cambia. La Lambda de capacidad valida el porcentaje, prefiere el umbral reportado y limita el umbral inferior a cero; utiliza la versión del Shadow y reintenta una vez ante conflicto. La correspondencia de estas versiones locales con las desplegadas aún debe comprobarse.
+
 ### 2.12. Skill Alexa
 
-**Nombre de invocación documentado:** “basurero inteligente”; idioma `es-MX`. Las frases siguientes son ejemplos y deben cotejarse con el modelo exportado.
+**Nombre de invocación documentado:** “basurero inteligente”; idioma `es-MX`. El [modelo de interacción incluido](docs/aws/config/alexa/interaction-model.json) contiene intents, slots y frases; falta confirmar que coincida con el modelo actualmente desplegado. Las frases de la tabla son ejemplos.
 | Intent | Slot | Ejemplo |
 |---|---|---|
 | `VincularBasureroIntent` | `codigo` | Vincula el basurero con el código indicado. |
@@ -438,7 +440,7 @@ sequenceDiagram
 
 Mockups de diseño, no dashboards implementados. Los ejemplos de valores deben sustituirse por datos reales.
 
-**A. Estado actual:** nivel, tapa estimada, modo, umbral y fecha de última lectura. Fuente prevista: Shadow y último registro de `basurero_historial`, sujeto a confirmar el formato temporal almacenado.
+**A. Estado actual:** nivel, tapa estimada, modo, umbral y fecha de última lectura. Fuente prevista: Shadow y último registro de `basurero_historial`; el formato temporal de la clave se describe en §2.10 y debe contrastarse con el despliegue.
 
 | Dispositivo | Llenado | Tapa estimada | Modo | Última lectura |
 |---|---:|---|---|---|
@@ -458,7 +460,7 @@ Mockups de diseño, no dashboards implementados. Los ejemplos de valores deben s
 | 10:02 | Apertura | Edge |
 | 10:45 | Cierre | Voz |
 
-**D. Resumen de actividad:** conteos de aperturas/cierres y comandos de voz, calculados sobre eventos históricos. La existencia de alertas de capacidad registradas no está confirmada. Todos los valores de mockup son ilustrativos. Las consultas por período requieren comprobar el formato ordenable de `timestampId`; los filtros y agregaciones pueden requerir leer elementos adicionales.
+**D. Resumen de actividad:** conteos de aperturas/cierres y comandos de voz, calculados sobre eventos históricos. La existencia de alertas de capacidad registradas no está confirmada. Todos los valores de mockup son ilustrativos. La clave del código incluido empieza con fecha UTC ordenable; las consultas deben ajustarse al formato realmente desplegado. Los filtros y agregaciones pueden requerir leer elementos adicionales.
 
 ### 2.16. Estimación de tráfico y costos
 
@@ -473,6 +475,7 @@ Estructura disponible en el repositorio:
 ├── include/ (configuración y headers)
 ├── src/ (main y clases del basurero/sensores/servo)
 ├── test/ (plan de pruebas)
+├── docs/aws/ (documentación, Lambdas, configuraciones de ejemplo y capturas)
 ├── Informe.md (este informe)
 ├── CONFIGURACION_AWS_ALEXA_BASURERO_INTELIGENTE_P4.md
 ├── aws-iot-policy.example.json
@@ -495,13 +498,15 @@ El firmware descrito utiliza Wi-Fi, MQTT TLS (puerto 8883), certificados X.509, 
 | IoT Thing | `basurero-grupo3-01` físico y `basurero-grupo3-02` simulado; el primero usa certificado X.509. |
 | Política IoT | [Plantilla sin secretos](aws-iot-policy.example.json) con Connect, Publish, Subscribe y Receive sobre recursos del Thing. |
 | IoT Rules | Tres reglas documentadas en §2.11, con acciones hacia almacenamiento o control de capacidad. |
-| Lambda | Tres funciones descritas en §2.11; el registro indica Python 3.12 y región `us-east-2`. Exportar versiones desplegadas. |
+| Lambda | Tres funciones descritas en §2.11; el registro indica Python 3.12 y región `us-east-2`. El código está en [docs/aws/lambdas](docs/aws/lambdas/); confirmar correspondencia con las versiones desplegadas. |
 | DynamoDB | `basurero_usuarios` y `basurero_historial`; claves en §2.10. GSI y TTL no confirmados. |
-| Alexa | Skill `Basurero Inteligente`, locale `es-MX`, backend Lambda y simulador. Exportar el modelo. |
+| Alexa | Skill `Basurero Inteligente`, locale `es-MX`, backend Lambda y simulador. El [modelo de interacción](docs/aws/config/alexa/interaction-model.json) está incluido; comprobar versión desplegada. |
 | IAM | El registro indica que el rol de capacidad se amplió para ambos Things; contrastar permisos efectivos exportados. |
 | Secretos | `include/CloudSecrets.h` excluido por [.gitignore](.gitignore); se entrega [plantilla](include/CloudSecrets.example.h). |
 
 Como mínimo, el certificado del ESP32 necesita autorización para conectar y usar sus tópicos; Alexa necesita acceso a la tabla de vínculos y a los Shadows autorizados; almacenamiento requiere `dynamodb:PutItem` sobre historial; capacidad necesita leer y actualizar los Shadows correspondientes. Las funciones requieren logs y los servicios que las disparan, permisos de invocación. Estos son permisos necesarios del diseño; el conjunto exacto realmente asignado aún debe comprobarse.
+
+Las políticas IAM incluidas para [Alexa](docs/aws/config/iam/alexa.example.json), [almacenamiento](docs/aws/config/iam/almacenamiento.example.json) y [capacidad](docs/aws/config/iam/capacidad.example.json) son **ejemplos**, no una exportación verificada de las políticas efectivamente asignadas. El registro describe que el rol de capacidad se amplió a ambos Things y que Alexa tenía alcance sobre `basurero-*`; el detalle completo requiere cotejo con IAM.
 
 ### 3.5. Parámetros iniciales
 
@@ -546,9 +551,9 @@ El [registro de configuración y demostraciones](CONFIGURACION_AWS_ALEXA_BASURER
 | Firmware y compilación | Existe firmware en el repositorio; falta adjuntar salida de build y versión de entrega. | [Código](src/) |
 | Sensores y servo | El registro describe lecturas, movimiento físico y funcionamiento de modos. | Registro AWS §12–13; ensayos T01–T09 sin resultados formales. |
 | Wi-Fi, MQTT TLS y Shadow | Se documentan conexión MQTT, Shadow recibido y reported aceptado. | Registro AWS §12–13; falta medición controlada de estabilidad. |
-| IoT Rules y Lambda | Se describe ejecución de reglas para Thing 02. | Registro AWS §11–13; exportaciones pendientes. |
-| DynamoDB histórico | Se visualizaron las tres telemetrías simuladas 95 %, 85 % y 80 %, además de datos previos del Thing 01. | Registro AWS §11.4; faltan capturas y conteos de integridad. |
-| Alexa y vinculación | Se documenta consulta y control del Thing físico y consulta de un segundo Thing con identidad simulada. | Registro AWS §11–13; no prueba dos cuentas Alexa reales. |
+| IoT Rules y Lambda | Se describe ejecución de reglas para Thing 02. | Registro AWS §11–13; [SQL y código incluidos](docs/aws/README.md), aún sin verificar contra despliegue. |
+| DynamoDB histórico | El registro describe telemetrías simuladas de 95 %, 85 % y 80 %. Una captura muestra lecturas y eventos de apertura/cierre del Thing 01. | [Captura del historial](docs/aws/evidencias/dynamodb/02-historial.png); no demuestra integridad ni latencia. |
+| Alexa y vinculación | Se documenta consulta y control del Thing físico y consulta de un segundo Thing con identidad simulada. | Registro AWS §11–13; [captura de vinculaciones](docs/aws/evidencias/multithing/01-vinculaciones.png). No prueba dos cuentas Alexa reales. |
 | Lógica Edge/Cloud | En Thing 02 simulado se documentó bloqueo a 95 %, permanencia a 85 % y desbloqueo a 80 %. | Registro AWS §11.4; no demuestra actuación física de un segundo ESP32. |
 | Mockups de reportes | Diseños ilustrativos en §2.15. | Requieren contrastar consultas y campos persistidos. |
 
@@ -570,6 +575,8 @@ El [registro de configuración y demostraciones](CONFIGURACION_AWS_ALEXA_BASURER
 ### 5.3. Análisis
 
 La secuencia 95/85/80 documentada en el Thing simulado es coherente con la histéresis configurada de 90/80. La simulación deja el delta pendiente sin un segundo ESP32 que confirme el estado físico. El registro también describe una reconexión MQTT, pero no una prueba controlada de interrupción, duración y recuperación.
+
+La [captura del Shadow físico](docs/aws/evidencias/iot-core/03-device-shadow.png) muestra un estado reportado con modo automático, tapa estimada cerrada, distancia y llenado; es una instantánea y no demuestra por sí sola la trayectoria física. La [captura de Alexa](docs/aws/evidencias/alexa/02-prueba-voz.png) muestra una respuesta equivocada sobre la tapa ante una pregunta por bloqueo: documenta el error anterior a la corrección, no una prueba de que se corrigió. El registro narrativo describe una respuesta correcta posterior; falta una captura de esa repetición.
 
 La separación Edge/Cloud deja sensores, servo y protección de cierre cerca del actuador y permite modificar la política de capacidad en la nube. QoS 0 y una cola limitada en RAM no garantizan entrega de eventos durante desconexiones. Los cambios rápidos de IR2 mencionados en el registro justifican comprobar su estabilidad y cobertura. Todavía no hay datos suficientes para evaluar precisión, tiempos, integridad o costo frente a los objetivos.
 
@@ -596,6 +603,8 @@ Con la evidencia disponible no puede concluirse que se cumplen los objetivos num
 - [Consigna y rúbrica de la práctica](Práctica_4.md).
 - [Plan de pruebas T01–T20](test/Pruebas.md).
 - [Configuración AWS, Alexa y registro de demostraciones](CONFIGURACION_AWS_ALEXA_BASURERO_INTELIGENTE_P4.md).
+- [Documentación AWS, código Lambda y configuraciones](docs/aws/README.md).
+- [Captura del historial](docs/aws/evidencias/dynamodb/02-historial.png), [Shadow del Thing físico](docs/aws/evidencias/iot-core/03-device-shadow.png), [vinculaciones](docs/aws/evidencias/multithing/01-vinculaciones.png) y [respuesta incorrecta previa de Alexa](docs/aws/evidencias/alexa/02-prueba-voz.png).
 - [Configuración de pines y parámetros](include/BinConfig.h), [código fuente](src/) y [dependencias](platformio.ini).
 - [Plantilla de política IoT](aws-iot-policy.example.json) y [plantilla sin credenciales](include/CloudSecrets.example.h).
 
@@ -604,6 +613,6 @@ Con la evidencia disponible no puede concluirse que se cumplen los objetivos num
 1. Fotografías del montaje y esquema eléctrico con los valores realmente utilizados para el divisor de ECHO.
 2. Resultados de T01–T20 con fecha, responsable, versión, condiciones, valores individuales y enlaces a capturas, logs o videos.
 3. Medición de integridad, latencia Edge y Cloud, precisión del llenado y comportamiento durante la desconexión; incluir muestras de telemetría y eventos almacenados en DynamoDB.
-4. Exportaciones sanitizadas de las tres Lambdas, modelo de interacción Alexa, reglas y acciones IoT, políticas IAM y definición de tablas. Confirmar campos persistidos, formato de `timestampId`, GSI y TTL.
+4. Cotejar las tres Lambdas, el modelo Alexa y los SQL incluidos con las versiones desplegadas; incorporar exportaciones sanitizadas de las políticas IAM efectivamente asignadas, acciones de las reglas y definición de tablas. Confirmar campos persistidos, GSI y TTL.
 5. Cálculo monetario mensual con tarifas y límites vigentes de la cuenta. Registrar versión o commit final, verificar que el repositorio sea accesible y que no contenga secretos.
 
