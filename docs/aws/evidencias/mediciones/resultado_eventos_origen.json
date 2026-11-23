@@ -1,0 +1,12 @@
+{
+  "prueba": "Verificacion de eventos por origen",
+  "tabla": "basurero_historial",
+  "fecha_consulta_utc": "2026-11-23T05:02:28.811421+00:00",
+  "total_eventos": 118,
+  "eventos_por_origen": {
+    "edge": 92,
+    "voz": 21,
+    "nube": 5
+  },
+  "eventos_sin_origen": 0
+}

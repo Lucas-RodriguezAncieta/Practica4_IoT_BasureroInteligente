@@ -1,0 +1,62 @@
+[
+  {
+    "mensaje": 1,
+    "distanceCm": 61.01,
+    "encontrado": true,
+    "latencia_segundos": 1.135
+  },
+  {
+    "mensaje": 2,
+    "distanceCm": 61.02,
+    "encontrado": true,
+    "latencia_segundos": 0.245
+  },
+  {
+    "mensaje": 3,
+    "distanceCm": 61.03,
+    "encontrado": true,
+    "latencia_segundos": 0.236
+  },
+  {
+    "mensaje": 4,
+    "distanceCm": 61.04,
+    "encontrado": true,
+    "latencia_segundos": 0.236
+  },
+  {
+    "mensaje": 5,
+    "distanceCm": 61.05,
+    "encontrado": true,
+    "latencia_segundos": 0.234
+  },
+  {
+    "mensaje": 6,
+    "distanceCm": 61.06,
+    "encontrado": true,
+    "latencia_segundos": 0.231
+  },
+  {
+    "mensaje": 7,
+    "distanceCm": 61.07,
+    "encontrado": true,
+    "latencia_segundos": 0.234
+  },
+  {
+    "mensaje": 8,
+    "distanceCm": 61.08,
+    "encontrado": true,
+    "latencia_segundos": 0.237
+  },
+  {
+    "mensaje": 9,
+    "distanceCm": 61.09,
+    "encontrado": true,
+    "latencia_segundos": 0.239
+  },
+  {
+    "mensaje": 10,
+    "distanceCm": 61.1,
+    "encontrado": true,
+    "latencia_segundos": 0.232
+  }
+]
