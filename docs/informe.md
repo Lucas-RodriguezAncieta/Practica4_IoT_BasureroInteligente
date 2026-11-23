@@ -121,7 +121,7 @@ flowchart LR
   GND --- COMMON[Tierra común: ESP32, sensores y servo]
 ```
 
-El divisor conecta 1 kΩ entre ECHO y GPIO 19, y 2 kΩ entre GPIO 19 y GND, según lo informado por el equipo. Con 5 V de entrada y resistencias ideales, la tensión calculada es aproximadamente 3,33 V; el valor real depende de la alimentación y las tolerancias. Se debe medir en el GPIO y comprobar que el nivel sea compatible con el ESP32. El [diagrama de conexiones actualizado](<Diagramado de Conexiones del Basurero Inteligente.jpg>) muestra esta disposición y la alimentación del servo desde 5 V/VIN. Verificar también que las salidas IR hacia el ESP32 no excedan 3,3 V y que la alimentación USB soporte la corriente del servo sin reinicios.
+El divisor conecta 1 kΩ entre ECHO y GPIO 19, y 2 kΩ entre GPIO 19 y GND, según lo informado por el equipo. Con 5 V de entrada y resistencias ideales, la tensión calculada es aproximadamente 3,33 V; el valor real depende de la alimentación y las tolerancias. El equipo no dispone de multímetro, por lo que la tensión en GPIO 19 **no fue medida** y no se ha verificado experimentalmente su nivel. El [diagrama de conexiones actualizado](<Diagramado de Conexiones del Basurero Inteligente.jpg>) muestra esta disposición y la alimentación del servo desde 5 V/VIN. El equipo informó que observó el movimiento del servo con alimentación USB; no se dispone aún de un registro de ciclos ni reinicios. Verificar también que las salidas IR hacia el ESP32 no excedan 3,3 V.
 
 ### 2.3 Procesamiento local y calibración
 
@@ -768,7 +768,7 @@ Los resultados respaldan la trazabilidad de eventos de actuadores y órdenes del
 
 | Subsistema | Evidencia recomendada |
 |---|---|
-| Hardware/Edge | Fotos de montaje y cableado, divisor ECHO medido, video IR1/IR2/tapa, logs Serial, build y 20 ciclos |
+| Hardware/Edge | Fotos de montaje y cableado, diagrama del divisor ECHO, video IR1/IR2/tapa, logs Serial, build y 20 ciclos |
 | Sensor de llenado | CSV de distancias de referencia, muestras crudas, mediana, porcentaje y error |
 | MQTT/Shadow | Capturas tópicos, desired/reported/delta, IDs de comando y confirmación de limpieza |
 | Rules/Lambda | Export SQL/acciones, logs de invocación y payload sanitizado |
