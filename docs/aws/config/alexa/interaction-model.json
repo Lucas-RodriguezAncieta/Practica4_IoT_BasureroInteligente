@@ -1,0 +1,218 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "basurero inteligente",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "VincularBasureroIntent",
+                    "slots": [
+                        {
+                            "name": "codigo",
+                            "type": "AMAZON.FOUR_DIGIT_NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "vincula mi basurero con el código {codigo}",
+                        "vincular basurero con código {codigo}",
+                        "registra mi basurero con el código {codigo}",
+                        "asocia mi basurero con el código {codigo}",
+                        "mi código de vinculación es {codigo}"
+                    ]
+                },
+                {
+                    "name": "DesvincularBasureroIntent",
+                    "slots": [],
+                    "samples": [
+                        "desvincula mi basurero",
+                        "elimina la vinculación de mi basurero",
+                        "desconecta mi basurero de mi cuenta"
+                    ]
+                },
+                {
+                    "name": "AbrirTapaIntent",
+                    "slots": [],
+                    "samples": [
+                        "abre la tapa",
+                        "abrir la tapa",
+                        "quiero abrir la tapa",
+                        "levanta la tapa del basurero",
+                        "abre mi basurero"
+                    ]
+                },
+                {
+                    "name": "CerrarTapaIntent",
+                    "slots": [],
+                    "samples": [
+                        "por favor cierra la tapa",
+                        "cierra la tapa del basurero",
+                        "quiero que cierre la tapa",
+                        "que cierre la tapa",
+                        "cierre la tapa",
+                        "cierra la tapa",
+                        "cerrar la tapa",
+                        "quiero cerrar la tapa",
+                        "baja la tapa del basurero",
+                        "cierra mi basurero"
+                    ]
+                },
+                {
+                    "name": "CambiarModoIntent",
+                    "slots": [
+                        {
+                            "name": "modo",
+                            "type": "MODO_BASURERO"
+                        }
+                    ],
+                    "samples": [
+                        "cambia al modo {modo}",
+                        "cambiar a modo {modo}",
+                        "pon el modo {modo}",
+                        "configura el modo {modo}",
+                        "activa el modo {modo}"
+                    ]
+                },
+                {
+                    "name": "CambiarUmbralIntent",
+                    "slots": [
+                        {
+                            "name": "porcentaje",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "cambia el umbral a {porcentaje} por ciento",
+                        "configura el umbral a {porcentaje} por ciento",
+                        "establece el umbral de llenado en {porcentaje} por ciento",
+                        "pon el límite de llenado en {porcentaje} por ciento"
+                    ]
+                },
+                {
+                    "name": "CambiarRetardoIntent",
+                    "slots": [
+                        {
+                            "name": "segundos",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "cambia el retardo a {segundos} segundos",
+                        "configura el cierre automático en {segundos} segundos",
+                        "establece el tiempo de cierre en {segundos} segundos",
+                        "pon el tiempo de cierre en {segundos} segundos"
+                    ]
+                },
+                {
+                    "name": "ConsultarNivelIntent",
+                    "slots": [],
+                    "samples": [
+                        "cuánto está lleno mi basurero",
+                        "cuál es el nivel de llenado",
+                        "qué porcentaje de basura tiene",
+                        "dime el nivel de llenado",
+                        "consulta el nivel de basura"
+                    ]
+                },
+                {
+                    "name": "ConsultarTapaIntent",
+                    "slots": [],
+                    "samples": [
+                        "la tapa está abierta",
+                        "la tapa está cerrada",
+                        "cuál es el estado de la tapa",
+                        "dime cómo está la tapa",
+                        "consulta el estado de la tapa"
+                    ]
+                },
+                {
+                    "name": "ConsultarModoIntent",
+                    "slots": [],
+                    "samples": [
+                        "en qué modo está funcionando",
+                        "cuál es el modo actual",
+                        "qué modo tiene el basurero",
+                        "consulta el modo de operación"
+                    ]
+                },
+                {
+                    "name": "ConsultarUmbralIntent",
+                    "slots": [],
+                    "samples": [
+                        "cuál es el umbral de llenado",
+                        "qué umbral tiene configurado",
+                        "dime el umbral de llenado",
+                        "consulta el umbral de llenado"
+                    ]
+                },
+                {
+                    "name": "ConsultarRetardoIntent",
+                    "slots": [],
+                    "samples": [
+                        "cuánto tarda en cerrar la tapa",
+                        "cuál es el retardo de cierre",
+                        "cuántos segundos tarda en cerrar",
+                        "consulta el tiempo de cierre"
+                    ]
+                },
+                {
+                    "name": "ConsultarSensoresIntent",
+                    "slots": [],
+                    "samples": [
+                        "qué detectan los sensores",
+                        "consulta el estado de los sensores",
+                        "hay algún obstáculo",
+                        "el sensor frontal detecta presencia",
+                        "dime el estado de los sensores"
+                    ]
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "ConsultarBloqueoIntent",
+                    "slots": [],
+                    "samples": [
+                        "si el basurero está lleno y bloqueado",
+                        "si el basurero permite abrir la tapa",
+                        "si hay un bloqueo por capacidad",
+                        "cuál es el estado del bloqueo",
+                        "si está bloqueado por capacidad",
+                        "si el basurero está bloqueado"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "MODO_BASURERO",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "automático",
+                                "synonyms": [
+                                    "automatico"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "manual"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

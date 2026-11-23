@@ -1,0 +1,18 @@
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GestionarShadowBasureros",
+      "Effect": "Allow",
+      "Action": [
+        "iot:GetThingShadow",
+        "iot:UpdateThingShadow"
+      ],
+      "Resource": [
+        "arn:aws:iot:us-east-2:AWS_ACCOUNT_ID:thing/basurero-grupo3-01",
+        "arn:aws:iot:us-east-2:AWS_ACCOUNT_ID:thing/basurero-grupo3-02"
+      ]
+    }
+  ]
+}

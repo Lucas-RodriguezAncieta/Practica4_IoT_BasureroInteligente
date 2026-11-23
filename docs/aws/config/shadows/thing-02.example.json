@@ -1,0 +1,12 @@
+
+{
+  "state": {
+    "desired": {
+      "mode": "AUTOMATICO",
+      "capacityLock": false
+    },
+    "reported": {
+      "fillPercent": 35
+    }
+  }
+}
