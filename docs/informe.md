@@ -91,9 +91,9 @@ flowchart LR
 | IR2 salida digital | 26 | Activo en LOW; activación inmediata y liberación filtrada. |
 | HC-SR04 TRIG | 18 | Pulso de disparo. |
 | HC-SR04 ECHO | 19 | **Divisor resistivo obligatorio** para reducir la señal de 5 V a un nivel apto para 3,3 V. |
-| SG90 señal | 21 | Alimentación externa de 5 V y tierra común. |
+| SG90 señal | 21 | Alimentación de 5 V desde VIN del ESP32, conectado por USB, y GND común. |
 
-Configuración: [BinConfig.h](../include/BinConfig.h). Los valores reales de resistencias y las fotografías del montaje no están documentados en las fuentes; deben añadirse al anexo tras inspeccionar el circuito.
+Configuración: [BinConfig.h](../include/BinConfig.h). El montaje se corrigió incorporando un divisor de 1 kΩ y 2 kΩ en ECHO, según la información del equipo. La [fotografía disponible](CircuitoReal.jpeg) corresponde al montaje documentado anteriormente y no permite comprobar el divisor; falta una fotografía actualizada.
 
 ### 2.2 Esquema eléctrico funcional
 
@@ -110,15 +110,18 @@ flowchart LR
   I1[IR1 OUT] --> G27
   I2[IR2 OUT] --> G26
   G18 --> TRIG[HC-SR04 TRIG]
-  ECHO[HC-SR04 ECHO 5 V] --> DIV[Divisor resistivo]
-  DIV --> G19
+  ECHO[HC-SR04 ECHO 5 V] --> R1[1 kΩ]
+  R1 --> G19
+  R1 --> R2[2 kΩ]
+  R2 --> GND
   G21 --> PWM[SG90 señal]
-  P5[Fuente 5 V adecuada] --> US[HC-SR04 VCC]
-  P5 --> SV[SG90 VCC]
-  GND --- COMMON[Tierra común: ESP32, sensores y fuente servo]
+  USB[Alimentación USB 5 V] --> VIN[ESP32 5 V / VIN]
+  VIN --> US[HC-SR04 VCC]
+  VIN --> SV[SG90 VCC]
+  GND --- COMMON[Tierra común: ESP32, sensores y servo]
 ```
 
-El diagrama representa conexiones funcionales y no sustituye un esquema con valores de resistencias, alimentación de cada módulo IR y fotografía del cableado real. Verificar que las salidas IR hacia el ESP32 no excedan 3,3 V.
+El divisor conecta 1 kΩ entre ECHO y GPIO 19, y 2 kΩ entre GPIO 19 y GND, según lo informado por el equipo. Con 5 V de entrada y resistencias ideales, la tensión calculada es aproximadamente 3,33 V; el valor real depende de la alimentación y las tolerancias. Se debe medir en el GPIO y comprobar que el nivel sea compatible con el ESP32. El [diagrama de conexiones actualizado](<Diagramado de Conexiones del Basurero Inteligente.jpg>) muestra esta disposición y la alimentación del servo desde 5 V/VIN. Verificar también que las salidas IR hacia el ESP32 no excedan 3,3 V y que la alimentación USB soporte la corriente del servo sin reinicios.
 
 ### 2.3 Procesamiento local y calibración
 
@@ -597,13 +600,13 @@ La telemetría y el reported se programan cada 30 s; esta frecuencia reduce trá
 La configuración documentada incluye Thing físico, certificado, política IoT, tres reglas, tres Lambdas, dos tablas y skill descritos en el [documentación AWS/Alexa](aws/README.md). Esa fuente indica runtime Python 3.12 y región `us-east-2`.
 El código de las tres funciones Lambda y el modelo de interacción de Alexa se incorporaron al repositorio en `docs/aws/`. Las políticas IAM personalizadas de las tres Lambdas fueron contrastadas con su configuración real y están documentadas mediante archivos JSON de ejemplo.
 
-La documentación técnica y las evidencias se encuentran en [docs/aws/](docs/aws/README.md).
+La documentación técnica y las evidencias se encuentran en [docs/aws/](aws/README.md).
 
 ## 5. Pruebas y validaciones
 
 El [plan T01–T20](../test/Pruebas.md) establece los procedimientos y criterios de validación del sistema.
 
-La mayoría de las pruebas todavía requiere registros formales de ejecución. Sin embargo, la prueba T16 cuenta con resultados cuantitativos de integridad y latencia: 100 de 100 mensajes almacenados y una latencia máxima observada de 1.135 segundos en una muestra adicional de 10 mensajes.
+El plan registra observaciones parciales de varias pruebas y resultados cuantitativos para T16 en la nube simulada: 100 de 100 mensajes almacenados y una latencia máxima observada de 1.135 segundos en una muestra adicional de 10 mensajes. Las pruebas desde el ESP32 físico aún requieren registros adicionales.
 
 Las observaciones funcionales restantes se presentan como evidencias parciales y no se consideran pruebas completamente aprobadas sin mediciones y registros suficientes.
 
