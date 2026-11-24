@@ -663,7 +663,7 @@ Las observaciones funcionales restantes se presentan como evidencias parciales y
 | ID | Prueba / procedimiento | Criterio de aceptación | Estado actual |
 |---|---|---|---|
 | T01 | IR1: acercar/retirar mano en modo automático, 10 repeticiones | Detecta presencia y abre la tapa en las 10 repeticiones | Aprobada: el equipo confirmó el funcionamiento físico; el registro serie muestra 11 secuencias estimadas. [Evidencia y enlace al video](../test/evidencias/T01-monitor-serie.md). |
-| T02 | Mantener la mano frente al IR1 durante varios segundos | No genera aperturas repetitivas ni activaciones inesperadas | Pendiente |
+| T02 | Mantener la mano frente al IR1 durante varios segundos | No genera aperturas repetitivas ni activaciones inesperadas | Aprobada: 16 s según cronómetro y observación del equipo; [registro serie](../test/evidencias/T02-monitor-serie.md), fotografías y video aportados |
 | T03 | MANUAL: activar IR1 y comprobar comando manual | IR1 no abre automáticamente; comandos manuales se procesan según reglas | Parcial; demostración de modos documentada |
 | T04 | Medir retardo de cierre en 5 ciclos | No inicia cierre antes del tiempo configurado; registrar duración real | Pendiente |
 | T05 | Activar IR2 antes del cierre | No inicia cierre mientras IR2 indique obstáculo | Pendiente |
