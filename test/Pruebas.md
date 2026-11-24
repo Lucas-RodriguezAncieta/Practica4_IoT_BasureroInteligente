@@ -2,7 +2,7 @@
 
 | ID | Prueba | Procedimiento | Resultado esperado | Estado |
 |---|---|---|---|---|
-| T01 | Detección de proximidad (IR1) | Acercar la mano al IR1 y repetir 10 veces. | Detecta la presencia y abre la tapa correctamente en modo AUTO (10/10 intentos). | PENDIENTE |
+| T01 | Detección de proximidad (IR1) | Acercar la mano al IR1 y repetir 10 veces. | Detecta la presencia y abre la tapa correctamente en modo AUTO (10/10 intentos). | PARCIAL: el registro serie contiene 11 secuencias de detección, apertura y cierre estimados; falta enlazar las imágenes y el video y confirmar los intentos físicos correctos. |
 | T02 | Detección continua | Mantener la mano frente al IR1 durante varios segundos. | No genera aperturas repetitivas ni activaciones inesperadas. | PENDIENTE |
 | T03 | Modo MANUAL | Activar MANUAL, acercar la mano al IR1 y probar comandos manuales. | IR1 no activa la apertura automática; los comandos manuales funcionan. | PARCIAL: demostración de modos documentada; falta registrar el procedimiento completo y evidencia. |
 | T04 | Cierre temporizado | Abrir la tapa y medir el tiempo de cierre en 5 intentos. | Respeta el tiempo mínimo configurado antes de cerrar. | PENDIENTE |
