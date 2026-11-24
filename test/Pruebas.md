@@ -4,7 +4,7 @@
 |---|---|---|---|---|
 | T01 | Detección de proximidad (IR1) | Acercar la mano al IR1 y repetir 10 veces. | Detecta la presencia y abre la tapa correctamente en modo AUTO (10/10 intentos). | APROBADA: el equipo confirmó el funcionamiento físico y el registro serie muestra 11 secuencias de detección y apertura/cierre estimados. [Evidencia y video](evidencias/T01-monitor-serie.md). |
 | T02 | Detección continua | Mantener la mano frente al IR1 durante varios segundos. | No genera aperturas repetitivas ni activaciones inesperadas. | APROBADA: el equipo observó una apertura sin reaperturas durante 16 s; [registro serie](evidencias/T02-monitor-serie.md), fotografías y video informados por el equipo. |
-| T03 | Modo MANUAL | Activar MANUAL, acercar la mano al IR1 y probar comandos manuales. | IR1 no activa la apertura automática; los comandos manuales funcionan. | PARCIAL: demostración de modos documentada; falta registrar el procedimiento completo y evidencia. |
+| T03 | Modo MANUAL | Activar MANUAL, acercar la mano al IR1 y probar comandos manuales. | IR1 no activa la apertura automática; los comandos manuales funcionan. | APROBADA: el equipo confirmó que IR1 no abrió la tapa y que las órdenes manuales de abrir y cerrar funcionaron. [Registro](evidencias/T03-modo-manual.md). |
 | T04 | Cierre temporizado | Abrir la tapa y medir el tiempo de cierre en 5 intentos. | Respeta el tiempo mínimo configurado antes de cerrar. | PENDIENTE |
 | T05 | Protección IR2 antes del cierre | Activar IR2 antes de que comience el cierre. | Impide el cierre mientras detecta un obstáculo. | PENDIENTE |
 | T06 | Obstáculo durante el cierre | Activar IR2 mientras la tapa se está cerrando. | Detiene el cierre y reacciona según la lógica de seguridad. | PENDIENTE |
