@@ -17,4 +17,6 @@ Tapa (estimada): cerrando
 Tapa (estimada): cerrada
 ```
 
-El registro completo aportado contiene 11 secuencias de detección de IR1 seguidas de apertura y cierre estimados. Este extracto muestra una de ellas; los mensajes por sí solos no confirman la posición física ni permiten asegurar cuántos intentos físicos cumplieron el criterio de aceptación. El equipo informó que dispone de dos imágenes en `test` y de un video. Quedan pendientes el número de intentos físicos correctos y los enlaces a esas evidencias.
+El registro completo aportado contiene 11 secuencias de detección de IR1 seguidas de apertura y cierre estimados. Este extracto muestra una de ellas. El equipo confirmó que observó físicamente el funcionamiento del servo con IR1 durante la prueba.
+
+El equipo informó que el [video de evidencia en Google Drive](https://drive.google.com/drive/folders/1e1kBgZhMyD00joOQXWiHsFJz2qgqlJlf?usp=drive_link) muestra el funcionamiento del servomotor con IR1. El enlace corresponde a una carpeta; su accesibilidad y el contenido del video no se han verificado desde esta revisión. El equipo también informó que dispone de dos imágenes en `test`, cuyos enlaces faltan incorporar.
