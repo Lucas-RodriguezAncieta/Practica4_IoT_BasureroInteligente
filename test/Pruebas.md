@@ -25,11 +25,13 @@
 
 ## Registro de métricas
 
+Los requisitos no funcionales heredados también requieren registrar una operación continua de al menos 10 minutos sin reinicios ni bloqueos y medir los intervalos de `reported` en el Shadow. El firmware programa el reporte periódico cada 30 s en condiciones normales; los eventos publicados en otro tópico no demuestran actualización inmediata del Shadow. Estas verificaciones están pendientes.
+
 | Métrica | Objetivo | Resultado obtenido |
 |---|---|---|
 | Respuesta de apertura Edge | ≤500 ms | Por medir |
 | Respuesta del sensor IR2 | Registrar tiempo de respuesta | Por medir |
-| Respuesta comando Cloud | ≤5 s | Por medir |
+| Respuesta de comando de voz de extremo a extremo | ≤3 s como objetivo heredado | Por medir: desde la solicitud a Alexa hasta el inicio observable del movimiento. |
 | Latencia de almacenamiento | ≤5 s | Promedio 0,326 s; máximo 1,135 s en 10 mensajes simulados. |
 | Integridad de almacenamiento | ≥99 % | 100 %: 100 de 100 mensajes simulados identificados en DynamoDB. |
 | Error de medición del llenado | ≤10 puntos porcentuales | Por medir |

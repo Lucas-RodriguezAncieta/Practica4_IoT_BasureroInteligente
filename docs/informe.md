@@ -9,11 +9,23 @@
 
 ## 1. Caso de uso y requerimientos
 
-### 1.1 Problema y solución
+### 1.1 Justificación del cambio de proyecto
+
+La propuesta inicial fue una **puerta inteligente para mascotas**, orientada a automatizar su apertura y cierre mediante un ESP32, sensores y un servomotor. Durante el análisis se identificó la necesidad de distinguir a la mascota autorizada de otros animales que pudieran activar la puerta.
+
+Se consideró utilizar un lector RFID y una etiqueta en el collar. Los módulos convencionales evaluados tenían un alcance aproximado de 3 cm, por lo que la mascota tendría que acercarse a una posición específica. Esto podía requerir adiestramiento o una ubicación cuidadosa del lector, sin garantizar la identificación en todas las ocasiones. También se consideró RFID UHF para aumentar el alcance, pero sus componentes tenían un costo mayor que el presupuesto previsto y aumentaban la complejidad de la solución.
+
+Ante estas limitaciones técnicas y económicas, el equipo planteó al docente cambiar la propuesta por un **basurero inteligente**. Según lo informado por el equipo, el docente aprobó el cambio y solicitó justificarlo en el informe.
+
+El nuevo caso de uso emplea un ESP32, dos sensores infrarrojos, un sensor ultrasónico y un servomotor para automatizar la tapa, detectar posibles obstáculos y estimar el llenado. La integración con AWS y Alexa conserva los objetivos académicos de programación del objeto inteligente, uso de sensores y actuadores y comunicación con servicios en la nube, con componentes accesibles y sin depender de la identificación de mascotas.
+
+El basurero es un **proyecto distinto** de la propuesta anterior. Los requisitos funcionales y no funcionales de la Práctica 3 se aplican al nuevo caso de uso conforme a la Práctica 4; los resultados y evidencias presentados en este informe corresponden al basurero y no se atribuyen a la puerta para mascotas.
+
+### 1.1.1 Problema y solución
 
 El basurero inteligente facilita el depósito de residuos sin tocar la tapa y permite consultar a distancia el estado y el llenado estimado. Un ESP32 lee dos sensores infrarrojos y un ultrasónico, acciona una tapa mediante un SG90 y comunica su estado a AWS. Una skill de Alexa consulta el último estado y solicita cambios mediante el Shadow del Thing asociado al usuario.
 
-La Práctica 4 amplía el control por voz y la vinculación usuario–Thing de la práctica anterior con control autónomo local, telemetría, historial y una regla de capacidad en la nube. La documentación disponible no describe con suficiente precisión el montaje físico anterior para atribuir componentes concretos a esa versión.
+En este nuevo caso de uso se aplican los requisitos de control por voz y vinculación usuario–Thing de la Práctica 3 y se añaden las funciones de la Práctica 4: control autónomo local, telemetría, historial y una regla de capacidad en la nube.
 
 | Componente | Cantidad | Función y justificación |
 |---|---:|---|
@@ -27,22 +39,36 @@ IR2 no detecta necesariamente todos los obstáculos; el sistema no debe consider
 
 ### 1.2 Requerimientos funcionales y trazabilidad
 
-| ID | Requerimiento verificable | Diseño o implementación | Prueba / evidencia y estado |
+Los RF1–RF9 de la Práctica 3 se mantienen para los sensores y el actuador del basurero. Los RF10–RF15 corresponden a la ampliación de la Práctica 4. Las matrices relacionan cada requisito con el diseño y sus pruebas.
+
+### 1.2.1 Requerimientos heredados de la Práctica 3
+
+| ID y requerimiento original | Aplicación en el basurero | Diseño e implementación | Prueba y estado documentado |
 |---|---|---|---|
-| F01 | Capturar IR1, IR2 y distancia; estimar y reportar llenado. | [Sensores](../src/UltrasonicSensor.cpp), [Shadow](../src/ShadowManager.cpp). | T01, T08 y T09 en [plan](../test/Pruebas.md), pendientes de registro formal; el registro AWS describe lecturas físicas. |
-| F02 | Abrir por proximidad en automático, sin repetir por detección sostenida. | [SmartBin](../src/SmartBin.cpp), IR1 filtrado. | T01–T02 pendientes. |
-| F03 | Cerrar tras el retardo configurado, con IR2 libre; reabrir ante obstáculo durante cierre. | [SmartBin](../src/SmartBin.cpp), [IR2](../src/ObstacleSensor.cpp). | T04–T06 pendientes. |
-| F04 | Distinguir modos automático y manual y aceptar comandos locales o del Shadow. | [SmartBin](../include/SmartBin.h), [main](../src/main.cpp). | Registro AWS informa demostración de ambos modos; T03 y T19 pendientes formalmente. |
-| F05 | Sincronizar configuración, sensores y estado estimado por Shadow; conectar por MQTT/TLS. | [AWSIoTManager](../src/AWSIoTManager.cpp), [ShadowManager](../src/ShadowManager.cpp). | Registro AWS informa conexión y aceptación de reported; T11–T12 pendientes formalmente. |
-| F06 | Vincular usuarios a Things y consultar/controlar por Alexa sin Thing fijo. | Lambda y tabla de usuarios descritas en [configuración AWS](../CONFIGURACION_AWS_ALEXA_BASURERO_INTELIGENTE_P4.md#8-vinculación-usuario--thing-algoritmo-completo). | Una cuenta Alexa y otra identidad simulada; T17–T19 pendientes formalmente. |
-| F07 | Enviar telemetría y eventos a reglas y guardar histórico por Thing. | Tres reglas y Lambda de almacenamiento, §3.7. |T13–T15 pendientes de validación formal. T16 APROBADA: integridad del 100 % (100/100) y latencia máxima de 1.135 s (10/10 mensajes dentro de 5 s).|
-| F08 | Aplicar bloqueo por capacidad en nube con histéresis y respetarlo en Edge. | Regla y Lambda de capacidad; [SmartBin](../src/SmartBin.cpp). | Registro AWS describe 95/85/80 % en Thing simulado; T20 pendiente formalmente. |
-| F09 | Consultar y modificar modo y parámetros desde Alexa. |Intents de modo, umbral y retardo, §3.8.| Registro AWS documenta solicitudes y respuestas; faltan capturas actuales de reported. |
-| F10 | Diseñar reportes para decisiones a partir del histórico. | Mockups en §3.10. | Diseño ilustrativo; consultas y datos reales por verificar. |
+| **RF1.** Capturar datos del entorno con su sensor. | Se amplía a dos sensores IR y un HC-SR04 para proximidad, obstáculo y distancia a residuos. | [ProximitySensor](../src/ProximitySensor.cpp), [ObstacleSensor](../src/ObstacleSensor.cpp) y [UltrasonicSensor](../src/UltrasonicSensor.cpp). | T01, T05, T06, T08 y T09: se describen observaciones físicas, pero falta registro formal de los ensayos. |
+| **RF2.** Reportar periódicamente el valor del sensor y el estado del actuador en la sección `reported` de su Shadow. | Se reportan los estados IR, distancia, llenado y estado estimado de la tapa. | [ShadowManager](../src/ShadowManager.cpp). El estado de tapa no es una medición física de posición. | T11–T12: Shadow y conexión observados; falta completar el registro formal. [Captura del Shadow físico](aws/evidencias/iot-core/03-device-shadow.png). |
+| **RF3.** Recibir los cambios del estado deseado (`delta` del Shadow), aplicarlos sobre el actuador y confirmar el nuevo estado en `reported`. | Se reciben órdenes de tapa y parámetros; el ESP32 aplica las restricciones de capacidad e IR2 y reporta el estado estimado. | [ShadowManager](../src/ShadowManager.cpp), [SmartBin](../src/SmartBin.cpp) y [main](../src/main.cpp). | T12 y T19: control y sincronización descritos; falta evidencia correlacionada de solicitud, movimiento y estado reportado. |
+| **RF4.** Responder, en español, consultas por voz sobre el valor actual del sensor, leyendo la sección `reported` del Shadow del *Thing* vinculado al usuario. | Alexa consulta el último llenado reportado; no supone una medición nueva en tiempo real. | [Lambda Alexa](aws/lambdas/basurero_alexa.py) y [modelo de interacción](aws/config/alexa/interaction-model.json). | T18: consultas descritas en el registro AWS; falta documentar formalmente cada caso. |
+| **RF5.** Ejecutar comandos por voz sobre el actuador, modificando la sección `desired` del Shadow del *Thing* vinculado al usuario. | Alexa solicita abrir o cerrar mediante `desired.command`; el dispositivo decide si admite la orden. | [Lambda Alexa](aws/lambdas/basurero_alexa.py), [ShadowManager](../src/ShadowManager.cpp) y [SmartBin](../src/SmartBin.cpp). | T19: movimiento físico mediante Alexa descrito; faltan registros completos por comando y condición de seguridad. La respuesta de Alexa confirma la solicitud, no la posición física. |
+| **RF6.** Responder consultas por voz sobre el estado actual del actuador del *Thing* vinculado al usuario. | Alexa consulta `reported.lidState`, que representa el estado estimado de la tapa. | [Lambda Alexa](aws/lambdas/basurero_alexa.py) y [modelo de interacción](aws/config/alexa/interaction-model.json). | T18: consulta descrita en la documentación AWS; falta evidencia formal del caso. |
+| **RF7.** Permitir que el usuario de Alexa **vincule su objeto inteligente** mediante un identificador del *Thing* (p. ej. su *thing name*, un número de serie o un código de vinculación), y que la vinculación **persista** entre sesiones. | La vinculación se realiza mediante código y se almacena en DynamoDB por `userId`. | [Lambda Alexa](aws/lambdas/basurero_alexa.py) y [modelo DynamoDB](aws/05-dynamodb.md). | T17: se documentan vinculaciones; la [captura](aws/evidencias/multithing/01-vinculaciones.png) muestra asociaciones. Una segunda identidad es simulada; falta una prueba formal de persistencia entre sesiones. |
+| **RF8.** Resolver, en cada solicitud, el *Thing* asociado al usuario a partir del identificador de usuario que envía Alexa en la solicitud (`context.System.user.userId`); si el usuario aún no tiene un objeto vinculado, la skill debe indicárselo y guiarlo para vincularlo. | El backend resuelve el Thing asociado al usuario y contempla la ausencia de vinculación. | [Lambda Alexa](aws/lambdas/basurero_alexa.py) y [vinculación Multi-Thing](aws/07-vinculacion-multithing.md). | T17 y T19: se describe enrutamiento con dos identidades, una simulada; falta documentar el caso de usuario no vinculado. |
+| **RF9.** Validar que el *Thing* indicado exista en AWS IoT Core antes de registrar la vinculación, y permitir **cambiar o eliminar** la vinculación. | La documentación y el código incluidos describen validación con `DescribeThing`, reemplazo de asociación y desvinculación. | [Lambda Alexa](aws/lambdas/basurero_alexa.py) y [vinculación Multi-Thing](aws/07-vinculacion-multithing.md). | T17: falta registrar pruebas completas de Thing inexistente, cambio y eliminación de vínculo. |
 
-Los requisitos funcionales de esta práctica se identifican F01–F10 para evitar confundirlos con los requisitos heredados de la Práctica 3. **Antes de entregar, transcribir literalmente RF01–RF09 de la Práctica 3** y agregar una columna que indique si cada uno se mantiene, modifica o amplía. No se afirma que F01–F10 sustituyan automáticamente todos los requisitos originales de la consigna.
+### 1.2.2 Requerimientos adicionales de la Práctica 4
 
-### 1.3.1 Trazabilidad de requerimientos al sistema
+| Requisito | Aplicación e implementación | Pruebas y evidencia |
+|---|---|---|
+| **RF10.** Activar reglas AWS IoT a partir de datos publicados e invocar funciones de procesamiento y almacenamiento. | Las reglas de telemetría y eventos invocan Lambda; [reglas](aws/03-reglas-iot-y-mqtt.md). | T13 parcial; T16 contiene resultados de nube simulada. |
+| **RF11.** Validar y enriquecer lecturas con Thing y marca temporal y almacenarlas en DynamoDB. | [Regla de telemetría](aws/config/reglas/telemetria.sql) y [Lambda de almacenamiento](aws/lambdas/basurero_almacenamiento.py). | T14 parcial, T15 pendiente; T16: 100/100 mensajes simulados. |
+| **RF12.** Registrar eventos del actuador con su origen en DynamoDB. | [Regla de eventos](aws/config/reglas/eventos.sql), [Lambda de almacenamiento](aws/lambdas/basurero_almacenamiento.py) y [firmware](../src/main.cpp). | T14 parcial; se documenta una consulta de 118 eventos por origen, sin demostrar entrega completa. |
+| **RF13.** Implementar la lógica automática en Edge y/o nube, justificando su ubicación; la lógica cloud actúa mediante `desired`. | IR1, IR2 y tapa en [SmartBin](../src/SmartBin.cpp); histéresis en [Lambda de capacidad](aws/lambdas/basurero_control_capacidad.py). | T01–T06 requieren registro formal; T20 es parcial con Thing simulado. |
+| **RF14.** Reportar modo y parámetros y permitir consultarlos y modificarlos por voz mediante Shadow. | [ShadowManager](../src/ShadowManager.cpp), [Lambda Alexa](aws/lambdas/basurero_alexa.py) y [modelo de interacción](aws/config/alexa/interaction-model.json). | T12, T18 y T19 parciales; faltan evidencias correlacionadas del estado aplicado. |
+| **RF15.** Diseñar mockups de reportes de datos almacenados que apoyen decisiones. | Mockups y consultas previstas en §3.10 y §3.16; [DynamoDB](aws/05-dynamodb.md). | Diseño documentado; contrastar consultas y datos con los recursos desplegados. |
+
+Los estados de las matrices no sustituyen los resultados medidos del [plan de pruebas](../test/Pruebas.md).
+
+### 1.3 Trazabilidad de requerimientos al sistema
 
 | Función | Componente responsable | Dato/acción observable | Prueba relacionada |
 |---|---|---|---|
@@ -66,11 +92,18 @@ Los valores siguientes son **objetivos**, no resultados medidos. El procedimient
 | Integridad de almacenamiento | ≥99 % de mensajes válidos de una ventana definida. | Comparar identificadores únicos publicados con elementos en DynamoDB; registrar duplicados y errores. |
 | Latencia de almacenamiento | ≤5 s desde publicación hasta persistencia observada. | Medir ambos extremos con relojes sincronizados y registrar máximo y distribución. |
 | Respuesta Edge | ≤500 ms desde detección IR1 estable hasta inicio observable de apertura. | Registrar detección y movimiento físico; declarar resolución del instrumento. |
-| Respuesta de comando Cloud | ≤5 s desde solicitud hasta inicio observable de movimiento, con conexión estable. | Marcar solicitud y movimiento; no usar la respuesta de Alexa como confirmación física. |
+| Respuesta de comando por voz | **Objetivo ≤3 s** desde la solicitud a Alexa hasta el inicio observable del movimiento, con conexión estable; la Práctica 3 usa 3 s como referencia. | Medir el recorrido completo Alexa → Lambda → Shadow → ESP32 y registrar máximo y condiciones; no usar la respuesta de Alexa como confirmación física. |
 | Exactitud de llenado | Error ≤10 puntos porcentuales frente a una referencia definida. | Diez lecturas en vacío, nivel intermedio y alto; comparar con referencia. |
 | Disponibilidad local | Mantener las reglas Edge durante pérdida de red. | Interrumpir WiFi, repetir acciones y registrar eventos perdidos y reconexión. |
+| Estabilidad heredada | Al menos 10 minutos de operación continua sin reinicios ni bloqueos, como objetivo mínimo. | Registrar inicio y fin, reinicios, bloqueos y condiciones de uso; pendiente de medición. |
+| Frecuencia de reporte heredada | `reported` periódico configurado cada 30 s en condiciones normales de conexión; objetivo de verificación, no máximo garantizado durante desconexiones. | Medir intervalos consecutivos en el Shadow y justificar la frecuencia por la dinámica del llenado y el tráfico; pendiente de verificación. |
+| Reconexión heredada | Reconectar WiFi y MQTT automáticamente y consultar/aplicar el `desired` pendiente. | Interrumpir la red, modificar `desired`, reconectar y observar aplicación y `reported`; pendiente de prueba controlada. |
 | Seguridad y acceso | TLS con certificado de servidor y cliente, sin publicar secretos; mínimo privilegio. | Revisar configuración y políticas efectivas. |
 | Costo | Estimar uso mensual y contrastar precios y límites vigentes. | Calcular volumen desde frecuencia y consultar tarifas aplicables. |
+
+La Práctica 3 recomienda combinar un reporte por cambio significativo con otro periódico de respaldo, sin fijar un intervalo universal. El firmware actual publica eventos de movimiento, cambio de modo u obstáculo en un tópico de eventos separado; esto **no equivale a actualizar inmediatamente `reported` del Shadow**. La actualización de `reported` está programada cada 30 s y al sincronizar inicialmente. No se ha demostrado un límite de 1 s para los eventos ni para su reflejo en Shadow; QoS 0 y desconexiones pueden causar pérdidas o demoras. Para llenado, que normalmente cambia más despacio, se eligió 30 s como compromiso de tráfico; el comportamiento de eventos discretos debe comprobarse y, si se requiere reflejo inmediato en Shadow, la implementación necesita mejoras.
+
+El código se organiza en módulos y clases. Las credenciales WiFi y claves del Thing se mantienen en `CloudSecrets.h`, excluido por [.gitignore](../.gitignore), con [plantilla](../include/CloudSecrets.example.h). La política IoT y los roles IAM deben limitarse a los permisos necesarios; queda pendiente cotejar y justificar los permisos efectivamente asignados. No se deben incluir claves de acceso AWS en el código.
 
 ## 2. Análisis del objeto inteligente
 
@@ -308,7 +341,8 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
- [*] --> Cerrada
+ [*] --> Cerrada: IR2 libre al iniciar
+ [*] --> Abierta: IR2 activo al iniciar
  Cerrada --> Abriendo: IR1 en automático u orden admitida
  Cerrando --> Abriendo: IR2 detecta obstáculo
  Abriendo --> Abierta: Ángulo de apertura ordenado
@@ -466,12 +500,9 @@ Los mensajes ilustran el contrato esperado y **deben cotejarse con los payloads 
 ```json
 {
   "fillPercent": 35,
-  "distanceCm": 16.2,
+  "distanceCm": 21.25,
   "mode": "AUTOMATICO",
-  "lidState": "cerrada",
-  "irFrontDetected": false,
-  "irObstacleDetected": false,
-  "valid": true
+  "lidState": "cerrada"
 }
 ```
 
@@ -481,17 +512,16 @@ Los mensajes ilustran el contrato esperado y **deben cotejarse con los payloads 
 {
   "event": "apertura",
   "origin": "edge",
-  "detail": "proximidad_ir1",
-  "commandId": null
+  "detail": "movimiento_estimado"
 }
 ```
 
 | Mensaje | Emisor → destino | Frecuencia / disparador | Campos mínimos | Validación |
 |---|---|---|---|---|
-| Telemetría | ESP32 → tópico `basurero/<thing>/telemetria` | Periódico, documentado cada 30 s | Medición, estado, modo, sensores | Rangos, tipos, lectura válida y timestamp añadido por backend |
+| Telemetría | ESP32 → tópico `basurero/<thing>/telemetria` | Periódico, documentado cada 30 s | Llenado, distancia, estado de tapa y modo; timestamp cuando está disponible | Rangos y tipos; la regla añade el instante de recepción. Si la medición no es válida, se envía null y la Lambda de almacenamiento incluida descarta esa telemetría. Los sensores IR se reportan por Shadow. |
 | Evento | ESP32 → tópico `basurero/<thing>/eventos` | Cambio/acción relevante | `event`, `origin`, `detail`, `commandId` si existe | Valores permitidos y tamaño de mensaje |
 | Comando | Alexa/Lambda → Shadow desired → ESP32 | Bajo solicitud | ID creciente, acción, origen | Autorización, ID no procesado, capacidad y seguridad IR2 |
-| Reported | ESP32 → Shadow | Al cambio y publicación periódica | Modo, sensores, nivel, estado estimado | No reportar posición física confirmada; inválidos no deben convertirse a cero |
+| Reported | ESP32 → Shadow | Al sincronizar inicialmente y periódicamente, cada 30 s en condiciones normales | Modo, sensores, nivel y estado estimado | No reportar posición física confirmada; inválidos no deben convertirse a cero. Los eventos en el tópico separado no actualizan inmediatamente el Shadow. |
 
 ### 3.12 Contrato de Shadow y ejemplos de estados
 
@@ -524,7 +554,7 @@ Los mensajes ilustran el contrato esperado y **deben cotejarse con los payloads 
       "fillAlertThreshold": 90,
       "capacityLock": false,
       "fillPercent": 35,
-      "distanceCm": 16.2,
+      "distanceCm": 21.25,
       "lidState": "cerrada",
       "irFrontDetected": false,
       "irObstacleDetected": false
@@ -572,7 +602,7 @@ No se han confirmado índices secundarios (GSI/LSI) ni TTL; se reportan como “
 | `CambiarModoIntent` | `modo` (AUTO/MANUAL) | “cambia a modo manual” | Repetir modo aceptado/reportado |
 | `CambiarUmbralIntent` | `porcentaje` (1–100; Lambda revisada restringe 11–100) | “configura alerta al 85 por ciento” | Validar rango antes de escribir Shadow |
 | `CambiarRetardoIntent` | `segundos` (1–3600) | “configura cierre en 5 segundos” | Confirmar valor aceptado |
-| `ConsultarNivelIntent` | — | “qué tan lleno está” | Informar último dato y frescura |
+| `ConsultarNivelIntent` | — | “qué tan lleno está” | Informar el último dato reportado; no se ha demostrado una comprobación de antigüedad |
 | `ConsultarTapaIntent` | — | “la tapa está abierta” | Informar estado estimado |
 | `ConsultarModoIntent` | — | “está en automático” | Informar modo reportado |
 | `ConsultarUmbralIntent` / `ConsultarRetardoIntent` | — | “cuál es el umbral”; “cuánto tarda en cerrar” | Informar parámetros reportados |
@@ -632,26 +662,26 @@ Las observaciones funcionales restantes se presentan como evidencias parciales y
 
 | ID | Prueba / procedimiento | Criterio de aceptación | Estado actual |
 |---|---|---|---|
-| T01 | IR1: acercar/retirar mano, 10 repeticiones | Detecta/libera en las 10 repeticiones; registrar falsos disparos | Pendiente de registro formal |
-| T02 | Apertura AUTO por IR1, repetir 10 veces | Abre solo si automático está activo y no hay bloqueo; detección sostenida no retriggera | Pendiente |
-| T03 | MANUAL: activar IR1 y comprobar comando manual | IR1 no abre automáticamente; comandos manuales se procesan según reglas | Pendiente |
+| T01 | IR1: acercar/retirar mano en modo automático, 10 repeticiones | Detecta presencia y abre la tapa en las 10 repeticiones | Pendiente de registro formal |
+| T02 | Mantener la mano frente al IR1 durante varios segundos | No genera aperturas repetitivas ni activaciones inesperadas | Pendiente |
+| T03 | MANUAL: activar IR1 y comprobar comando manual | IR1 no abre automáticamente; comandos manuales se procesan según reglas | Parcial; demostración de modos documentada |
 | T04 | Medir retardo de cierre en 5 ciclos | No inicia cierre antes del tiempo configurado; registrar duración real | Pendiente |
 | T05 | Activar IR2 antes del cierre | No inicia cierre mientras IR2 indique obstáculo | Pendiente |
 | T06 | Activar IR2 durante cierre, 5 intentos | Reacciona y ordena reapertura/acción segura según firmware; registrar tiempo | Pendiente |
 | T07 | Ejecutar 20 ciclos de tapa | Sin atascos, reinicios ni deformación; registrar anomalías | Pendiente |
 | T08 | Calibrar vacío/intermedio/alto, 10 muestras por punto | Error máximo objetivo ≤10 puntos porcentuales; adjuntar tabla de distancia/estimación | Pendiente |
 | T09 | Provocar eco inválido/fuera de rango | Lectura se marca inválida; no se almacena como nivel real ni se inventa valor | Pendiente |
-| T10 | Cortar Wi-Fi/Internet y probar funciones locales | IR1, IR2, temporizador y sensor local continúan según diseño; registrar pérdida de eventos | Pendiente |
-| T11 | Ver conexión TLS y publicar telemetría/evento | Conexión y mensajes visibles en tópico esperado | Pendiente formal; registro narrativo existente |
-| T12 | Cambiar Shadow desired y observar firmware/reported | Valor validado/aplicado; reported refleja estado; comando se limpia sin reejecución | Pendiente formal; registro narrativo existente |
-| T13 | Publicar telemetría/evento para activar Rule | Se invoca Lambda prevista y se registra log correlacionable | Pendiente formal |
-| T14 | Enviar 10 lecturas y 5 eventos válidos | Items aparecen en historial con Thing, timestamp y tipo correctos | Pendiente formal; registro narrativo parcial |
+| T10 | Cortar Wi-Fi/Internet y probar funciones locales | IR1, IR2, temporizador y sensor local continúan según diseño; registrar pérdida de eventos | Parcial; reconexión observada, falta prueba offline controlada |
+| T11 | Ver conexión TLS y publicar telemetría | Conexión estable y mensajes recibidos en el tópico configurado | Parcial; conexión y publicaciones documentadas, falta registro formal de estabilidad |
+| T12 | Cambiar Shadow desired y observar firmware/reported | El ESP32 aplica el cambio y reporta el estado actualizado | Parcial; falta evidencia correlacionada de solicitud y estado aplicado |
+| T13 | Publicar una lectura para activar Rule y Lambda | El mensaje es detectado y procesado correctamente | Parcial; reglas y disparadores documentados, falta correlacionar una invocación |
+| T14 | Enviar 10 lecturas y 5 eventos válidos | Items aparecen en historial con Thing, timestamp y tipo correctos | Parcial; historial observado, falta comprobar la muestra específica |
 | T15 | Enviar 5 payloads malformados o fuera de rango | Rechazados/registrados como inválidos; no contaminan datos válidos ni generan comando | Pendiente |
-| T16 | Verificar integridad y latencia del almacenamiento en DynamoDB mediante telemetrías MQTT simuladas | Integridad ≥99 %; latencia ≤5 s | APROBADA: integridad 100 % (100/100); latencia máxima 1.135 s (10/10 dentro de 5 s) |
-| T17 | Verificar 2 bindings y usuario sin binding | Cada identidad accede solo al Thing vinculado; usuario no vinculado denegado | Pendiente formal; prueba simulada descrita |
-| T18 | Consultar nivel, tapa, modo y lectura ausente/desactualizada con Alexa | Respuesta usa datos reportados y distingue dato faltante o antiguo | Pendiente formal |
-| T19 | Comandos de voz: abrir, cerrar, modo, retardo y umbral; obstáculo y usuario no vinculado | Comando autorizado; Edge respeta IR2/capacidad; respuesta no afirma posición física confirmada | Pendiente formal; registro narrativo |
-| T20 | Enviar 95%, 85%, 80% y casos inválidos; repetir con nube desconectada | Con threshold 90%, bloqueo ≥90%, mantiene entre 80–89 y libera ≤80; Edge aplica último valor; invalidez no cambia lock | Pendiente formal; Thing simulado documentado |
+| T16 | Verificar integridad y latencia del almacenamiento en DynamoDB mediante telemetrías simuladas | Integridad ≥99 %; latencia ≤5 s | Aprobada en nube simulada: 100/100; máximo 1,135 s en muestra separada de 10. Ruta desde ESP32 físico pendiente. |
+| T17 | Verificar dos vinculaciones y consultas por usuario | Cada identidad accede al Thing vinculado | Parcial; una identidad y un Thing son simulados; falta evidencia completa de aislamiento y denegación |
+| T18 | Consultar nivel, tapa y modo mediante Alexa | Responde con los datos reportados y reconoce datos no disponibles | Parcial; consultas descritas, falta evidencia de todos los casos |
+| T19 | Comandos por voz, IR2 y usuario no vinculado | Comandos autorizados funcionan; IR2 protege y usuarios no vinculados no acceden | Parcial; control físico descrito, faltan pruebas completas de IR2 y usuario no vinculado |
+| T20 | Simular el umbral y probar bloqueo y desbloqueo | Lambda aplica histéresis y el ESP32 respeta el bloqueo | Parcial; secuencia 95/85/80 documentada para Thing simulado; falta ciclo completo físico |
 
 ### 5.3 Registro de ejecución por prueba
 
@@ -744,10 +774,7 @@ El resultado cumple el objetivo de latencia máxima de 5 segundos para los mensa
 
 **Responsable:** Josue Camacho — Integración AWS
 
-**Dispositivo:** `basurero-grupo3-02` (simulado)
-
-
-Se realizó una consulta a DynamoDB mediante AWS CloudShell para identificar los eventos almacenados según el atributo `origin`.
+Se realizó una consulta a DynamoDB mediante AWS CloudShell para identificar los eventos almacenados según el atributo `origin`. El archivo de resultados no identifica un Thing ni detalla el filtro utilizado, por lo que el alcance por dispositivo debe comprobarse.
 
 | Origen | Cantidad | Ejemplos |
 |---|---:|---|
@@ -913,4 +940,20 @@ El segundo Thing se utilizó principalmente para simulación, por lo que no se p
 - Para producción, reemplazar códigos estáticos de vinculación por credenciales temporales y revisar permisos efectivos de todos los roles.
 - Evaluar un mecanismo para detectar ausencia de telemetría mediante ejecución programada; una regla disparada por mensajes no detecta por sí misma que dejaron de llegar.
 
-[Informe_Practica4_desde_Caso_de_Uso_hasta_Recomendaciones.md](https://github.com/user-attachments/files/35247872/Informe_Practica4_desde_Caso_de_Uso_hasta_Recomendaciones.md)
+## 9. Anexos y evidencias
+
+La [documentación AWS](aws/README.md) reúne las descripciones de configuración, código, reglas y capturas. Las evidencias de configuración muestran recursos existentes en el momento de la captura; no prueban por sí solas todos los flujos ni los tiempos de respuesta.
+
+| Evidencia | Alcance |
+|---|---|
+| [Fotografía del circuito](CircuitoReal.jpeg) | Montaje previo a la incorporación del divisor; no verifica el cableado actualizado. |
+| [Diagrama actualizado](<Diagramado de Conexiones del Basurero Inteligente.jpg>) | Conexiones previstas del montaje, incluido el divisor de ECHO. |
+| [Things](aws/evidencias/iot-core/01-things.png), [reglas](aws/evidencias/iot-core/02-reglas-iot.png) y [Lambdas](aws/evidencias/lambda/01-funciones-lambda.png) | Recursos visibles en las consolas. |
+| [Shadow físico](aws/evidencias/iot-core/03-device-shadow.png) e [historial DynamoDB](aws/evidencias/dynamodb/02-historial.png) | Instantánea del estado reportado y ejemplos de registros. |
+| [Vinculaciones](aws/evidencias/multithing/01-vinculaciones.png) y [Shadow del Thing simulado](aws/evidencias/multithing/03-shadow-thing02.png) | Evidencia de asociaciones y estado simulado; no demuestra dos dispositivos físicos. |
+| [Captura inicial de Alexa](aws/evidencias/alexa/02-prueba-voz.png) | Documenta la respuesta incorrecta anterior a la corrección de la consulta de bloqueo; no acredita la repetición posterior. |
+| [Integridad de 100 mensajes](aws/evidencias/mediciones/resultado_integridad_100.json), [latencia de 10 mensajes](aws/evidencias/mediciones/resultado_latencia_10.json) y [eventos por origen](aws/evidencias/mediciones/resultado_eventos_origen.json) | Resultados documentados en §5 y §6; las dos primeras pruebas utilizan Thing simulado y QoS 1. |
+
+Archivos de referencia: [Lambdas](aws/lambdas/), [modelo Alexa](aws/config/alexa/interaction-model.json), reglas SQL de [telemetría](aws/config/reglas/telemetria.sql), [eventos](aws/config/reglas/eventos.sql) y [capacidad](aws/config/reglas/capacidad.sql), y [plan de pruebas](../test/Pruebas.md). Las políticas IAM incluidas como ejemplos deben distinguirse de los permisos efectivamente asignados.
+
+Siguen pendientes las pruebas y métricas indicadas en §5, una fotografía del montaje actual y las fuentes y comparación de la estimación de costos. Mantener los resultados simulados separados de los ensayos con el dispositivo físico.
